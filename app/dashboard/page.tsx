@@ -99,7 +99,7 @@ export default function DashboardPage() {
     ]
 
     if (profile?.role === 'admin') {
-        navItems.push({ name: 'Admin', href: '/dashboard/admin/users', icon: 'M12 4v16m8-8H4' })
+        navItems.push({ name: 'Admin', href: '/dashboard/admin', icon: 'M12 4v16m8-8H4' })
     }
 
     return (
