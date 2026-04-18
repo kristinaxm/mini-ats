@@ -318,6 +318,10 @@ export default function JobsPage() {
         { name: 'AI Screening', href: '/dashboard/ai' },
     ]
 
+    if (isAdmin) {
+        navItems.push({ name: 'Admin', href: '/dashboard/admin' })
+    }
+
     if (loading) {
         return (
             <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-400 via-gray-300 to-gray-400">
@@ -644,7 +648,7 @@ export default function JobsPage() {
             </main>
 
             <footer className="relative z-10 border-t border-gray-300 bg-white/40 backdrop-blur-sm py-4 text-center text-xs text-gray-500">
-                Mini ATS - Built for Devotion Ventures
+                Mini ATS
             </footer>
 
             {showJobModal && selectedJob && (
