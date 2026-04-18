@@ -32,6 +32,12 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     })
 }
 
+async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
+    const mammoth = await import('mammoth')
+    const result = await mammoth.extractRawText({ buffer })
+    return result.value
+}
+
 export async function POST(request: Request) {
     try {
         const formData = await request.formData()
@@ -45,16 +51,15 @@ export async function POST(request: Request) {
         if (file && !textToAnalyze) {
             const buffer = Buffer.from(await file.arrayBuffer())
             const fileType = file.type
+            const fileName = file.name
 
-            if (fileType === 'application/pdf') {
+            if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
                 textToAnalyze = await extractTextFromPDF(buffer)
             }
-            else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                const mammoth = await import('mammoth')
-                const result = await mammoth.extractRawText({ buffer })
-                textToAnalyze = result.value
+            else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
+                textToAnalyze = await extractTextFromDOCX(buffer)
             }
-            else if (fileType === 'text/plain') {
+            else if (fileType === 'text/plain' || fileName.endsWith('.txt')) {
                 textToAnalyze = buffer.toString('utf-8')
             }
             else {
@@ -88,6 +93,12 @@ Analyze the CV and respond in EXACTLY this JSON format:
     "gaps": ["gap 1", "gap 2"],
     "questions": ["interview question 1", "interview question 2", "interview question 3"]
 }
+
+Guidelines for scoring:
+- 90-100: Excellent match, top candidate
+- 70-89: Good match, strong potential
+- 50-69: Partial match, some gaps
+- 0-49: Poor match, significant gaps
 
 Respond with ONLY the JSON, no other text.
 `
