@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import NotificationBell from '@/components/NotificationBell'
 
 type AppUser = { id: string; email?: string | null }
 type AppProfile = { id: string; role?: string | null; email?: string | null; full_name?: string | null; company_name?: string | null }
@@ -29,6 +30,18 @@ type CandidateRecord = {
         questions?: string[]
     } | null
     jobs?: { title: string }
+}
+
+type InterviewNote = {
+    id: string
+    notes: string
+    rating: number
+    strengths: string
+    weaknesses: string
+    recommendation: string
+    ai_analysis: string
+    created_at: string
+    updated_at: string
 }
 
 const ALL_CUSTOMERS = '__all__'
@@ -72,6 +85,8 @@ export default function CandidatesPage() {
 
     const [showDetailModal, setShowDetailModal] = useState(false)
     const [selectedCandidate, setSelectedCandidate] = useState<CandidateRecord | null>(null)
+    const [interviewNote, setInterviewNote] = useState<InterviewNote | null>(null)
+    const [loadingNote, setLoadingNote] = useState(false)
 
     const isAdmin = profile?.role === 'admin'
 
@@ -80,6 +95,25 @@ export default function CandidatesPage() {
         if (!isAdmin) return user.id
         return selectedCustomerId === ALL_CUSTOMERS ? null : selectedCustomerId
     }, [isAdmin, selectedCustomerId, user])
+
+    useEffect(() => {
+        if (candidates.length > 0) {
+            const selectedId = sessionStorage.getItem('selectedCandidateId')
+            if (selectedId) {
+                setTimeout(() => {
+                    const element = document.getElementById(`candidate-${selectedId}`)
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        element.classList.add('ring-2', 'ring-gray-600', 'bg-gray-100', 'transition-all', 'duration-500')
+                        setTimeout(() => {
+                            element.classList.remove('ring-2', 'ring-gray-600', 'bg-gray-100')
+                        }, 3000)
+                    }
+                }, 500)
+                sessionStorage.removeItem('selectedCandidateId')
+            }
+        }
+    }, [candidates])
 
     useEffect(() => {
         const bootstrap = async () => {
@@ -134,6 +168,28 @@ export default function CandidatesPage() {
             loadCandidates()
         }
     }, [user, activeCustomerId])
+
+    const loadInterviewNote = async (candidateId: string) => {
+        setLoadingNote(true)
+        const { data } = await supabase
+            .from('interview_notes')
+            .select('*')
+            .eq('candidate_id', candidateId)
+            .single()
+
+        if (data) {
+            setInterviewNote(data)
+        } else {
+            setInterviewNote(null)
+        }
+        setLoadingNote(false)
+    }
+
+    const openDetailModal = async (candidate: CandidateRecord) => {
+        setSelectedCandidate(candidate)
+        setShowDetailModal(true)
+        await loadInterviewNote(candidate.id)
+    }
 
     const handleAnalyzeCV = async () => {
         if (!cvText && !cvFile) {
@@ -300,7 +356,9 @@ export default function CandidatesPage() {
         { name: 'Jobs', href: '/dashboard/jobs' },
         { name: 'Candidates', href: '/dashboard/candidates' },
         { name: 'Kanban', href: '/dashboard/kanban' },
+        { name: 'Calendar', href: '/dashboard/calendar' },
         { name: 'AI Screening', href: '/dashboard/ai' },
+        { name: 'Interview Notes', href: '/dashboard/notes' },
     ]
 
     if (isAdmin) {
@@ -320,46 +378,24 @@ export default function CandidatesPage() {
         )
     }
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'new':
-                return 'bg-gray-800 text-gray-100 border border-gray-600'
-            case 'reviewed':
-                return 'bg-gray-700 text-gray-200 border border-gray-500'
-            case 'interview':
-                return 'bg-gray-600 text-gray-100 border border-gray-500'
-            case 'hired':
-                return 'bg-gray-800 text-green-300 border border-green-800/50'
-            case 'rejected':
-                return 'bg-gray-800 text-red-300 border border-red-800/50'
-            default:
-                return 'bg-gray-700 text-gray-200 border border-gray-500'
-        }
-    }
-
     return (
         <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-400 via-gray-300 to-gray-400">
-
             <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute -left-40 top-1/2 w-96 h-96 bg-gray-500/30 rounded-full filter blur-3xl animate-pulse"></div>
                 <div className="absolute -right-40 top-1/2 w-96 h-96 bg-gray-500/30 rounded-full filter blur-3xl animate-pulse delay-700"></div>
                 <div className="absolute -left-20 bottom-20 w-80 h-80 bg-gray-600/20 rounded-full filter blur-3xl animate-pulse delay-1000"></div>
                 <div className="absolute -right-20 top-20 w-80 h-80 bg-gray-600/20 rounded-full filter blur-3xl animate-pulse delay-1500"></div>
-
                 <div className="absolute top-20 right-20 w-48 h-48 rounded-full border-2 border-gray-500/30 animate-spin-slow"></div>
                 <div className="absolute bottom-20 left-20 w-64 h-64 rounded-full border-2 border-gray-600/25 animate-spin-slow delay-2000"></div>
                 <div className="absolute top-1/2 right-1/3 w-32 h-32 rounded-full border-2 border-gray-500/20 animate-spin-slow delay-1000"></div>
                 <div className="absolute top-1/3 left-1/4 w-40 h-40 rounded-full border-2 border-gray-400/20 animate-spin-slow delay-3000"></div>
                 <div className="absolute bottom-1/3 right-1/4 w-56 h-56 rounded-full border-2 border-gray-500/25 animate-spin-slow delay-2500"></div>
-
                 <div className="absolute top-1/4 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-600/30 to-transparent"></div>
                 <div className="absolute top-2/4 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-600/25 to-transparent"></div>
                 <div className="absolute top-3/4 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-600/30 to-transparent"></div>
-
                 <div className="absolute top-0 bottom-0 left-1/4 w-px bg-gradient-to-b from-transparent via-gray-600/25 to-transparent"></div>
                 <div className="absolute top-0 bottom-0 left-2/4 w-px bg-gradient-to-b from-transparent via-gray-600/30 to-transparent"></div>
                 <div className="absolute top-0 bottom-0 left-3/4 w-px bg-gradient-to-b from-transparent via-gray-600/25 to-transparent"></div>
-
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-400/10 to-transparent animate-scan"></div>
             </div>
 
@@ -376,6 +412,7 @@ export default function CandidatesPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-4">
+                        <NotificationBell />
                         <span className="hidden text-sm text-gray-500 md:block">{user?.email} ({isAdmin ? 'Admin' : 'Customer'})</span>
                         <button onClick={handleLogout} className="rounded-lg bg-gradient-to-r from-gray-700 to-gray-800 px-4 py-2 text-sm text-white shadow-md hover:from-gray-600 hover:to-gray-700">Logout</button>
                     </div>
@@ -654,10 +691,11 @@ export default function CandidatesPage() {
                                                         >
                                                             <option value="new">New</option>
                                                             <option value="reviewed">Reviewed</option>
-                                                            <option value="interview">Interview</option>
+                                                            {/* INTERVIEW REMOVED - can only be set via calendar */}
                                                             <option value="hired">Hired</option>
                                                             <option value="rejected">Rejected</option>
                                                         </select>
+                                                        <p className="text-xs text-gray-400 mt-1">Interview status can only be set by scheduling an interview in the Calendar.</p>
                                                     </div>
                                                     <div className="flex gap-2 pt-2">
                                                         <button
@@ -682,8 +720,9 @@ export default function CandidatesPage() {
                                     return (
                                         <article
                                             key={candidate.id}
+                                            id={`candidate-${candidate.id}`}
                                             className="rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer"
-                                            onClick={() => { setSelectedCandidate(candidate); setShowDetailModal(true); }}
+                                            onClick={() => openDetailModal(candidate)}
                                         >
                                             <div className="flex justify-between items-start">
                                                 <div className="flex-1">
@@ -697,11 +736,11 @@ export default function CandidatesPage() {
                                                     )}
                                                     <div className="mt-2 flex flex-wrap items-center gap-2">
                                                         <span className={`px-2 py-0.5 text-xs rounded-full ${
-                                                            candidate.status === 'new' ? 'bg-blue-100 text-blue-800' :
-                                                                candidate.status === 'reviewed' ? 'bg-yellow-100 text-yellow-800' :
-                                                                    candidate.status === 'interview' ? 'bg-purple-100 text-purple-800' :
-                                                                        candidate.status === 'hired' ? 'bg-green-100 text-green-800' :
-                                                                            'bg-red-100 text-red-800'
+                                                            candidate.status === 'new' ? 'bg-gray-100 text-gray-700' :
+                                                                candidate.status === 'reviewed' ? 'bg-gray-200 text-gray-700' :
+                                                                    candidate.status === 'interview' ? 'bg-gray-300 text-gray-800' :
+                                                                        candidate.status === 'hired' ? 'bg-green-100 text-green-700' :
+                                                                            'bg-red-100 text-red-700'
                                                         }`}>
                                                             {candidate.status}
                                                         </span>
@@ -710,11 +749,17 @@ export default function CandidatesPage() {
                                                                 AI Match: <span className="font-medium text-gray-700">{candidate.ai_analysis.matchScore}%</span>
                                                             </span>
                                                         )}
+                                                        {candidate.status === 'interview' && (
+                                                            <span className="text-xs text-purple-600 ml-2">
+                                                                (Scheduled via Calendar)
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <button
-                                                        onClick={() => {
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
                                                             setEditingCandidate(candidate)
                                                             setEditName(candidate.name)
                                                             setEditEmail(candidate.email || '')
@@ -728,7 +773,10 @@ export default function CandidatesPage() {
                                                         Edit
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDeleteCandidate(candidate.id)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleDeleteCandidate(candidate.id)
+                                                        }}
                                                         className="px-2.5 py-1 text-sm bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all shadow-sm"
                                                     >
                                                         Delete
@@ -745,13 +793,20 @@ export default function CandidatesPage() {
                 </div>
             </main>
 
-            <footer className="relative z-10 border-t border-gray-300 bg-white/40 backdrop-blur-sm py-4 text-center text-xs text-gray-500">
-                Mini ATS
+            <footer className="relative z-10 border-t border-gray-300 bg-white/40 backdrop-blur-sm">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <p className="text-xs text-gray-500">© 2026 Mini ATS — Smart recruitment for modern teams</p>
+                        <div className="flex gap-6">
+                            <span className="text-xs text-gray-400">Powered by Next.js + Supabase</span>
+                        </div>
+                    </div>
+                </div>
             </footer>
 
             {showDetailModal && selectedCandidate && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDetailModal(false)}>
-                    <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6 border border-gray-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 border border-gray-200 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-between items-start mb-4">
                             <h2 className="text-2xl font-bold text-gray-800">{selectedCandidate.name}</h2>
                             <button onClick={() => setShowDetailModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
@@ -786,15 +841,13 @@ export default function CandidatesPage() {
 
                             {selectedCandidate.ai_analysis && (
                                 <div className="border-t border-gray-200 pt-3">
-                                    <h3 className="font-semibold text-gray-700 text-sm mb-3">AI Analysis</h3>
-
+                                    <h3 className="font-semibold text-gray-700 text-sm mb-3">AI Analysis (CV)</h3>
                                     <div className="mb-3">
                                         <span className="font-semibold text-gray-700">Match Score:</span>
                                         <span className="ml-2 px-2 py-1 text-sm font-semibold text-gray-800 bg-gray-200 rounded-full">
                                             {selectedCandidate.ai_analysis.matchScore}%
                                         </span>
                                     </div>
-
                                     {selectedCandidate.ai_analysis.strengths && selectedCandidate.ai_analysis.strengths.length > 0 && (
                                         <div className="mb-3">
                                             <p className="font-semibold text-gray-700 mb-1">Strengths:</p>
@@ -805,7 +858,6 @@ export default function CandidatesPage() {
                                             </ul>
                                         </div>
                                     )}
-
                                     {selectedCandidate.ai_analysis.gaps && selectedCandidate.ai_analysis.gaps.length > 0 && (
                                         <div className="mb-3">
                                             <p className="font-semibold text-gray-700 mb-1">Areas to improve:</p>
@@ -816,7 +868,6 @@ export default function CandidatesPage() {
                                             </ul>
                                         </div>
                                     )}
-
                                     {selectedCandidate.ai_analysis.questions && selectedCandidate.ai_analysis.questions.length > 0 && (
                                         <div className="mt-3">
                                             <details className="cursor-pointer">
@@ -831,6 +882,112 @@ export default function CandidatesPage() {
                                     )}
                                 </div>
                             )}
+
+                            <div className="border-t border-gray-200 pt-3">
+                                <h3 className="font-semibold text-gray-700 text-sm mb-3">Interview Notes</h3>
+
+                                {loadingNote ? (
+                                    <div className="text-center py-4">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600 mx-auto"></div>
+                                    </div>
+                                ) : interviewNote ? (
+                                    <div className="space-y-3">
+                                        {interviewNote.rating && (
+                                            <div>
+                                                <p className="text-xs text-gray-500">Rating</p>
+                                                <div className="flex gap-1 mt-1">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <span key={star} className={`text-lg ${star <= (interviewNote.rating || 0) ? 'text-gray-700' : 'text-gray-300'}`}>
+                                                            ★
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {interviewNote.strengths && (
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-500">Strengths</p>
+                                                <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-2 rounded">{interviewNote.strengths}</p>
+                                            </div>
+                                        )}
+                                        {interviewNote.weaknesses && (
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-500">Areas to improve</p>
+                                                <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-2 rounded">{interviewNote.weaknesses}</p>
+                                            </div>
+                                        )}
+                                        {interviewNote.notes && (
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-500">Detailed Notes</p>
+                                                <div className="text-sm text-gray-700 mt-1 bg-gray-50 p-2 rounded max-h-32 overflow-y-auto whitespace-pre-wrap">
+                                                    {interviewNote.notes}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {interviewNote.ai_analysis && (
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-500">AI Analysis</p>
+                                                <div className="text-sm text-gray-700 mt-1 bg-gray-100 p-2 rounded border border-gray-200">
+                                                    {interviewNote.ai_analysis}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {interviewNote.recommendation && (
+                                            <div>
+                                                <p className="text-xs font-medium text-gray-500">Recommendation</p>
+                                                <span className={`inline-block mt-1 px-2 py-1 text-xs rounded-full ${
+                                                    interviewNote.recommendation === 'hire' ? 'bg-green-100 text-green-700' :
+                                                        interviewNote.recommendation === 'reject' ? 'bg-red-100 text-red-700' :
+                                                            'bg-yellow-100 text-yellow-700'
+                                                }`}>
+                                                    {interviewNote.recommendation === 'hire' ? 'Hire' :
+                                                        interviewNote.recommendation === 'reject' ? 'Rejected' :
+                                                            'Further Review'}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <p className="text-xs text-gray-400">
+                                                Last updated: {new Date(interviewNote.updated_at).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <div className="mt-3 pt-2">
+                                            <Link
+                                                href={`/dashboard/notes`}
+                                                onClick={() => {
+                                                    sessionStorage.setItem('selectedCandidateId', selectedCandidate.id)
+                                                    sessionStorage.setItem('selectedCandidateName', selectedCandidate.name)
+                                                    sessionStorage.setItem('selectedCandidateJob', selectedCandidate.jobs?.title || '')
+                                                }}
+                                                className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                            >
+                                                Edit full interview notes →
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-4">
+                                        <p className="text-sm text-gray-500">No interview notes available</p>
+                                        {selectedCandidate.status === 'interview' ? (
+                                            <Link
+                                                href={`/dashboard/notes`}
+                                                onClick={() => {
+                                                    sessionStorage.setItem('selectedCandidateId', selectedCandidate.id)
+                                                    sessionStorage.setItem('selectedCandidateName', selectedCandidate.name)
+                                                    sessionStorage.setItem('selectedCandidateJob', selectedCandidate.jobs?.title || '')
+                                                }}
+                                                className="text-sm text-blue-600 hover:text-blue-800 mt-2 inline-block"
+                                            >
+                                                Add interview notes →
+                                            </Link>
+                                        ) : (
+                                            <p className="text-xs text-gray-400 mt-2">
+                                                Interview notes can only be added after scheduling an interview in the Calendar.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
