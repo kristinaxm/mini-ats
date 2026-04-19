@@ -3,8 +3,8 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
-
 import { createClient } from '@/lib/supabase/client'
+import NotificationBell from '@/components/NotificationBell'
 
 type AppUser = {
     id: string
@@ -78,20 +78,34 @@ export default function JobsPage() {
         if (!user) {
             return null
         }
-
         if (!isAdmin) {
             return user.id
         }
-
         return selectedCustomerId === ALL_CUSTOMERS ? null : selectedCustomerId
     }, [isAdmin, selectedCustomerId, user])
 
     useEffect(() => {
-        const bootstrap = async () => {
-            const {
-                data: { user: authUser },
-            } = await supabase.auth.getUser()
+        if (jobs.length > 0) {
+            const selectedId = sessionStorage.getItem('selectedJobId')
+            if (selectedId) {
+                setTimeout(() => {
+                    const element = document.getElementById(`job-${selectedId}`)
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        element.classList.add('ring-2', 'ring-gray-600', 'bg-gray-100', 'transition-all', 'duration-500')
+                        setTimeout(() => {
+                            element.classList.remove('ring-2', 'ring-gray-600', 'bg-gray-100')
+                        }, 3000)
+                    }
+                }, 500)
+                sessionStorage.removeItem('selectedJobId')
+            }
+        }
+    }, [jobs])
 
+    useEffect(() => {
+        const bootstrap = async () => {
+            const { data: { user: authUser } } = await supabase.auth.getUser()
             if (!authUser) {
                 router.push('/login')
                 return
@@ -101,7 +115,6 @@ export default function JobsPage() {
                 id: authUser.id,
                 email: authUser.email,
             }
-
             setUser(currentUser)
 
             const { data: currentProfile, error: profileError } = await supabase
@@ -137,7 +150,6 @@ export default function JobsPage() {
 
             setLoading(false)
         }
-
         bootstrap()
     }, [router, supabase])
 
@@ -180,13 +192,9 @@ export default function JobsPage() {
 
     const handleCreateJob = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault()
-
-        if (!user) {
-            return
-        }
+        if (!user) return
 
         const customerId = isAdmin ? activeCustomerId : user.id
-
         if (!customerId) {
             setError('Select a customer before creating a job.')
             return
@@ -216,7 +224,6 @@ export default function JobsPage() {
         setSuccessMessage('Job created successfully!')
         await loadJobs()
         setSaving(false)
-
         setTimeout(() => setSuccessMessage(''), 3000)
     }
 
@@ -293,29 +300,14 @@ export default function JobsPage() {
         setShowJobModal(true)
     }
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'new':
-                return 'bg-gray-800 text-gray-100 border border-gray-600'
-            case 'reviewed':
-                return 'bg-gray-700 text-gray-200 border border-gray-500'
-            case 'interview':
-                return 'bg-gray-600 text-gray-100 border border-gray-500'
-            case 'hired':
-                return 'bg-gray-800 text-green-300 border border-green-800/50'
-            case 'rejected':
-                return 'bg-gray-800 text-red-300 border border-red-800/50'
-            default:
-                return 'bg-gray-700 text-gray-200 border border-gray-500'
-        }
-    }
-
     const navItems = [
         { name: 'Overview', href: '/dashboard' },
         { name: 'Jobs', href: '/dashboard/jobs' },
         { name: 'Candidates', href: '/dashboard/candidates' },
         { name: 'Kanban', href: '/dashboard/kanban' },
+        { name: 'Calendar', href: '/dashboard/calendar' },
         { name: 'AI Screening', href: '/dashboard/ai' },
+        { name: 'Interview Notes', href: '/dashboard/notes' },
     ]
 
     if (isAdmin) {
@@ -337,27 +329,22 @@ export default function JobsPage() {
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-400 via-gray-300 to-gray-400">
-
             <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute -left-40 top-1/2 w-96 h-96 bg-gray-500/30 rounded-full filter blur-3xl animate-pulse"></div>
                 <div className="absolute -right-40 top-1/2 w-96 h-96 bg-gray-500/30 rounded-full filter blur-3xl animate-pulse delay-700"></div>
                 <div className="absolute -left-20 bottom-20 w-80 h-80 bg-gray-600/20 rounded-full filter blur-3xl animate-pulse delay-1000"></div>
                 <div className="absolute -right-20 top-20 w-80 h-80 bg-gray-600/20 rounded-full filter blur-3xl animate-pulse delay-1500"></div>
-
                 <div className="absolute top-20 right-20 w-48 h-48 rounded-full border-2 border-gray-500/30 animate-spin-slow"></div>
                 <div className="absolute bottom-20 left-20 w-64 h-64 rounded-full border-2 border-gray-600/25 animate-spin-slow delay-2000"></div>
                 <div className="absolute top-1/2 right-1/3 w-32 h-32 rounded-full border-2 border-gray-500/20 animate-spin-slow delay-1000"></div>
                 <div className="absolute top-1/3 left-1/4 w-40 h-40 rounded-full border-2 border-gray-400/20 animate-spin-slow delay-3000"></div>
                 <div className="absolute bottom-1/3 right-1/4 w-56 h-56 rounded-full border-2 border-gray-500/25 animate-spin-slow delay-2500"></div>
-
                 <div className="absolute top-1/4 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-600/30 to-transparent"></div>
                 <div className="absolute top-2/4 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-600/25 to-transparent"></div>
                 <div className="absolute top-3/4 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-600/30 to-transparent"></div>
-
                 <div className="absolute top-0 bottom-0 left-1/4 w-px bg-gradient-to-b from-transparent via-gray-600/25 to-transparent"></div>
                 <div className="absolute top-0 bottom-0 left-2/4 w-px bg-gradient-to-b from-transparent via-gray-600/30 to-transparent"></div>
                 <div className="absolute top-0 bottom-0 left-3/4 w-px bg-gradient-to-b from-transparent via-gray-600/25 to-transparent"></div>
-
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-400/10 to-transparent animate-scan"></div>
             </div>
 
@@ -383,6 +370,7 @@ export default function JobsPage() {
                     </div>
 
                     <div className="flex items-center gap-4">
+                        <NotificationBell />
                         <span className="hidden text-sm text-gray-500 md:block">
                             {user?.email} ({isAdmin ? 'Admin' : 'Customer'})
                         </span>
@@ -407,12 +395,9 @@ export default function JobsPage() {
                                     : 'Create and manage jobs connected to your customer account.'}
                             </p>
                         </div>
-
                         {isAdmin && (
                             <div className="min-w-72 rounded-2xl border border-gray-300 bg-white/70 p-4 shadow-xl backdrop-blur-xl">
-                                <label className="mb-2 block text-sm font-medium text-gray-700">
-                                    Customers
-                                </label>
+                                <label className="mb-2 block text-sm font-medium text-gray-700">Customers</label>
                                 <select
                                     value={selectedCustomerId}
                                     onChange={(event) => setSelectedCustomerId(event.target.value)}
@@ -425,23 +410,13 @@ export default function JobsPage() {
                                         </option>
                                     ))}
                                 </select>
-                                <p className="mt-2 text-xs text-gray-500">
-                                    Choose a customer to create jobs for them. Leave on all to review every job.
-                                </p>
+                                <p className="mt-2 text-xs text-gray-500">Choose a customer to create jobs for them. Leave on all to review every job.</p>
                             </div>
                         )}
                     </div>
 
-                    {error && (
-                        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                            {error}
-                        </div>
-                    )}
-                    {successMessage && (
-                        <div className="mb-6 rounded-lg border border-gray-300 bg-gray-100 px-4 py-3 text-sm text-gray-700">
-                            {successMessage}
-                        </div>
-                    )}
+                    {error && <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
+                    {successMessage && <div className="mb-6 rounded-lg border border-gray-300 bg-gray-100 px-4 py-3 text-sm text-gray-700">{successMessage}</div>}
 
                     <div className="grid gap-8 lg:grid-cols-[420px_minmax(0,1fr)]">
                         <section className="rounded-2xl border border-gray-600 bg-gray-800/80 backdrop-blur-xl p-6 shadow-xl">
@@ -451,12 +426,9 @@ export default function JobsPage() {
                                     ? 'New jobs will be saved to the selected customer.'
                                     : 'New jobs will automatically be saved to your account.'}
                             </p>
-
                             <form onSubmit={handleCreateJob} className="mt-6 space-y-4">
                                 <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-300">
-                                        Job title
-                                    </label>
+                                    <label className="mb-1 block text-sm font-medium text-gray-300">Job title</label>
                                     <input
                                         type="text"
                                         required
@@ -466,11 +438,8 @@ export default function JobsPage() {
                                         placeholder="Senior Full Stack Developer"
                                     />
                                 </div>
-
                                 <div>
-                                    <label className="mb-1 block text-sm font-medium text-gray-300">
-                                        Description
-                                    </label>
+                                    <label className="mb-1 block text-sm font-medium text-gray-300">Description</label>
                                     <textarea
                                         required
                                         rows={6}
@@ -480,7 +449,6 @@ export default function JobsPage() {
                                         placeholder="Write the role summary, requirements, and responsibilities."
                                     />
                                 </div>
-
                                 <button
                                     type="submit"
                                     disabled={saving || (isAdmin && !activeCustomerId)}
@@ -488,11 +456,8 @@ export default function JobsPage() {
                                 >
                                     {saving ? 'Saving...' : 'Save job'}
                                 </button>
-
                                 {isAdmin && !activeCustomerId && (
-                                    <p className="text-xs text-gray-400">
-                                        Select a specific customer above before creating a new job.
-                                    </p>
+                                    <p className="text-xs text-gray-400">Select a specific customer above before creating a new job.</p>
                                 )}
                             </form>
                         </section>
@@ -507,20 +472,14 @@ export default function JobsPage() {
                                             : 'Showing jobs connected to the active customer.'}
                                     </p>
                                 </div>
-                                <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-700">
-                                    {jobs.length} jobs
-                                </span>
+                                <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-700">{jobs.length} jobs</span>
                             </div>
 
                             <div className="space-y-4 max-h-[600px] overflow-y-auto">
                                 {jobs.map((job) => {
-                                    const customerLabel =
-                                        customers.find((customer) => customer.id === job.customer_id)
-                                            ?.company_name ||
-                                        customers.find((customer) => customer.id === job.customer_id)
-                                            ?.full_name ||
-                                        customers.find((customer) => customer.id === job.customer_id)
-                                            ?.email ||
+                                    const customerLabel = customers.find((customer) => customer.id === job.customer_id)?.company_name ||
+                                        customers.find((customer) => customer.id === job.customer_id)?.full_name ||
+                                        customers.find((customer) => customer.id === job.customer_id)?.email ||
                                         job.customer_id
 
                                     if (editingJob?.id === job.id) {
@@ -564,14 +523,13 @@ export default function JobsPage() {
                                     return (
                                         <article
                                             key={job.id}
+                                            id={`job-${job.id}`}
                                             className="rounded-2xl border border-gray-200 bg-white/80 p-4 shadow-sm hover:shadow-md transition-all cursor-pointer"
                                             onClick={() => openJobModal(job)}
                                         >
                                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                                 <div className="flex-1">
-                                                    <h3 className="text-md font-semibold text-gray-800">
-                                                        {job.title}
-                                                    </h3>
+                                                    <h3 className="text-md font-semibold text-gray-800">{job.title}</h3>
                                                     <p className="mt-1 text-xs text-gray-600">
                                                         {job.description ? job.description.substring(0, 150) + (job.description.length > 150 ? '...' : '') : 'No description provided.'}
                                                     </p>
@@ -581,7 +539,6 @@ export default function JobsPage() {
                                                             <> · Updated: {new Date(job.updated_at).toLocaleDateString()}</>
                                                         )}
                                                     </p>
-
                                                     {job.candidates && job.candidates.length > 0 && (
                                                         <div className="mt-2">
                                                             <p className="text-xs font-medium text-gray-500">Candidates ({job.candidates.length})</p>
@@ -609,23 +566,11 @@ export default function JobsPage() {
                                                         </div>
                                                     )}
                                                 </div>
-
                                                 <div className="flex gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                    <button
-                                                        onClick={(e) => handleEditClick(job, e)}
-                                                        className="px-2.5 py-1 text-sm bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-500 hover:to-gray-600 transition-all shadow-sm"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => handleDeleteJob(job.id, e)}
-                                                        className="px-2.5 py-1 text-sm bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all shadow-sm"
-                                                    >
-                                                        Delete
-                                                    </button>
+                                                    <button onClick={(e) => handleEditClick(job, e)} className="px-2.5 py-1 text-sm bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg hover:from-gray-500 hover:to-gray-600 transition-all shadow-sm">Edit</button>
+                                                    <button onClick={(e) => handleDeleteJob(job.id, e)} className="px-2.5 py-1 text-sm bg-gradient-to-r from-gray-700 to-gray-800 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all shadow-sm">Delete</button>
                                                 </div>
                                             </div>
-
                                             <div className="mt-2 shrink-0 rounded-xl bg-gray-100 px-2 py-1.5 text-xs text-gray-500">
                                                 <p>Customer</p>
                                                 <p className="mt-0.5 font-medium text-gray-700">
@@ -635,7 +580,6 @@ export default function JobsPage() {
                                         </article>
                                     )
                                 })}
-
                                 {jobs.length === 0 && (
                                     <div className="rounded-2xl border border-dashed border-gray-300 bg-white/50 px-6 py-12 text-center text-gray-500">
                                         No jobs found for this view yet.
@@ -647,8 +591,15 @@ export default function JobsPage() {
                 </div>
             </main>
 
-            <footer className="relative z-10 border-t border-gray-300 bg-white/40 backdrop-blur-sm py-4 text-center text-xs text-gray-500">
-                Mini ATS
+            <footer className="relative z-10 border-t border-gray-300 bg-white/40 backdrop-blur-sm">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                        <p className="text-xs text-gray-500">© 2026 Mini ATS — Smart recruitment for modern teams</p>
+                        <div className="flex gap-6">
+                            <span className="text-xs text-gray-400">Powered by Next.js + Supabase</span>
+                        </div>
+                    </div>
+                </div>
             </footer>
 
             {showJobModal && selectedJob && (
@@ -666,15 +617,11 @@ export default function JobsPage() {
                             </div>
                             <button onClick={() => setShowJobModal(false)} className="text-gray-500 hover:text-gray-700 text-2xl">×</button>
                         </div>
-
                         <div className="space-y-6">
                             <div className="border-b border-gray-200 pb-4">
                                 <h3 className="font-semibold text-gray-700 text-sm mb-2">Description</h3>
-                                <p className="text-gray-600 text-sm whitespace-pre-wrap">
-                                    {selectedJob.description || 'No description provided.'}
-                                </p>
+                                <p className="text-gray-600 text-sm whitespace-pre-wrap">{selectedJob.description || 'No description provided.'}</p>
                             </div>
-
                             <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div><span className="font-semibold text-gray-700">Customer:</span> <span className="text-gray-600">
                                     {customers.find(c => c.id === selectedJob.customer_id)?.company_name ||
@@ -683,11 +630,8 @@ export default function JobsPage() {
                                 </span></div>
                                 <div><span className="font-semibold text-gray-700">Total Candidates:</span> <span className="text-gray-600">{selectedJob.candidates?.length || 0}</span></div>
                             </div>
-
                             <div className="border-t border-gray-200 pt-4">
-                                <h3 className="font-semibold text-gray-700 text-sm mb-3">
-                                    Candidates ({selectedJob.candidates?.length || 0})
-                                </h3>
+                                <h3 className="font-semibold text-gray-700 text-sm mb-3">Candidates ({selectedJob.candidates?.length || 0})</h3>
                                 {selectedJob.candidates && selectedJob.candidates.length > 0 ? (
                                     <div className="space-y-3 max-h-96 overflow-y-auto">
                                         {selectedJob.candidates.map((candidate) => (
@@ -698,14 +642,10 @@ export default function JobsPage() {
                                                         <p className="text-xs text-gray-500 mt-0.5">{candidate.title || 'No title'}</p>
                                                         {candidate.email && <p className="text-xs text-gray-400 mt-0.5">{candidate.email}</p>}
                                                         {candidate.linkedin_url && (
-                                                            <a href={candidate.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline block mt-1">
-                                                                LinkedIn Profile →
-                                                            </a>
+                                                            <a href={candidate.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline block mt-1">LinkedIn Profile →</a>
                                                         )}
                                                         {candidate.cv_url && (
-                                                            <a href={candidate.cv_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline block mt-1">
-                                                                Download CV →
-                                                            </a>
+                                                            <a href={candidate.cv_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline block mt-1">Download CV →</a>
                                                         )}
                                                     </div>
                                                     <div className="flex flex-col items-end gap-2">
@@ -718,12 +658,7 @@ export default function JobsPage() {
                                                         }`}>
                                                             {candidate.status}
                                                         </span>
-                                                        <Link
-                                                            href={`/dashboard/candidates`}
-                                                            className="text-xs text-gray-500 hover:text-gray-700"
-                                                        >
-                                                            Edit →
-                                                        </Link>
+                                                        <Link href={`/dashboard/candidates`} className="text-xs text-gray-500 hover:text-gray-700">Edit →</Link>
                                                     </div>
                                                 </div>
                                                 {candidate.ai_analysis?.matchScore && (
@@ -745,20 +680,10 @@ export default function JobsPage() {
             )}
 
             <style jsx>{`
-                @keyframes spin-slow {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-                @keyframes scan {
-                    0% { transform: translateY(-100%); }
-                    100% { transform: translateY(100%); }
-                }
-                .animate-spin-slow {
-                    animation: spin-slow 20s linear infinite;
-                }
-                .animate-scan {
-                    animation: scan 8s ease-in-out infinite;
-                }
+                @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                @keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+                .animate-spin-slow { animation: spin-slow 20s linear infinite; }
+                .animate-scan { animation: scan 8s ease-in-out infinite; }
             `}</style>
         </div>
     )

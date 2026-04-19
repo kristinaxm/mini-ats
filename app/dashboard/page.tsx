@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import NotificationBell from '@/components/NotificationBell'
 
 export default function DashboardPage() {
     const [user, setUser] = useState<any>(null)
@@ -95,7 +96,9 @@ export default function DashboardPage() {
         { name: 'Jobs', href: '/dashboard/jobs', icon: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
         { name: 'Candidates', href: '/dashboard/candidates', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
         { name: 'Kanban', href: '/dashboard/kanban', icon: 'M4 6h16M4 12h16M4 18h16' },
+        { name: 'Calendar', href: '/dashboard/calendar', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
         { name: 'AI Screening', href: '/dashboard/ai', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
+        { name: 'Interview Notes', href: '/dashboard/notes', icon: 'M12 4v16m8-8H4' },
     ]
 
     if (profile?.role === 'admin') {
@@ -104,7 +107,6 @@ export default function DashboardPage() {
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-400 via-gray-300 to-gray-400">
-
             <div className="absolute inset-0 overflow-hidden">
                 <div className="absolute -left-40 top-1/2 w-96 h-96 bg-gray-500/30 rounded-full filter blur-3xl animate-pulse"></div>
                 <div className="absolute -right-40 top-1/2 w-96 h-96 bg-gray-500/30 rounded-full filter blur-3xl animate-pulse delay-700"></div>
@@ -134,6 +136,7 @@ export default function DashboardPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-4">
+                            <NotificationBell />
                             <span className="text-sm text-gray-500 hidden md:block">
                                 {user?.email} ({profile?.role === 'admin' ? 'Admin' : 'Customer'})
                             </span>
@@ -150,7 +153,6 @@ export default function DashboardPage() {
 
             <div className="relative z-10 pt-28 pb-20 px-4 sm:px-6 lg:px-8 min-h-screen">
                 <div className="max-w-7xl mx-auto">
-
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-gray-800">Dashboard Overview</h1>
                         <p className="text-gray-500 mt-1">Welcome back, {user?.email}</p>
@@ -222,7 +224,7 @@ export default function DashboardPage() {
             <footer className="relative z-10 border-t border-gray-300 bg-white/40 backdrop-blur-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <p className="text-xs text-gray-500">© 2026 Mini ATS</p>
+                        <p className="text-xs text-gray-500">© 2026 Mini ATS — Smart recruitment for modern teams</p>
                         <div className="flex gap-6">
                             <span className="text-xs text-gray-400">Powered by Next.js + Supabase</span>
                         </div>
