@@ -1,36 +1,255 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+### Mini ATS
 
-## Getting Started
+An Applicant Tracking System built with Next.js, Supabase, and OpenAI. This platform helps recruitment teams manage job postings, track candidates, screen CVs with AI, schedule interviews, and make hiring decisions. The system features comprehensive AI assistance throughout the recruitment process, including an intelligent chatbot for instant support and guidance.
 
-First, run the development server:
+---
+
+### Tech Stack
+- **Framework:** Next.js 16 (App Router)
+- **Database & Auth:** Supabase (PostgreSQL)
+- **AI:** OpenAI API (GPT-3.5-turbo)
+- **Styling:** Tailwind CSS
+- **Language:** TypeScript
+- **File Processing:** pdf2json, mammoth
+---
+
+### AI Screening Page
+Dedicated page with multiple AI-powered recruitment tools:
+
+- **Candidate Ranking:** Rank all candidates by AI match score for a selected job
+- **Interview Questions Generator:** Generate custom technical, behavioral, and role-specific questions based on job title and description
+- **Gap Analysis:** Analyze why a candidate doesn't match and get actionable suggestions including missing skills, weak areas, training suggestions, and recommendations
+- **Job Description Optimizer:** AI-powered job description improvement for inclusivity, engagement, and clarity
+- **Batch CV Screening:** Upload multiple CV files and/or paste CV texts for one-time analysis against a job
+
+### AI Chatbot
+- Floating chat button available on all pages
+- Recruitment-specific assistant answering questions about:
+    - Recruitment best practices
+    - Interview question suggestions for specific roles
+    - Tips for writing better job descriptions
+    - Candidate evaluation methods
+    - Screening and assessment advice
+- Concise, professional responses (2-4 sentences)
+- Chat history with clear option
+
+### CV Analysis AI
+- Automatically extracts and analyzes CV content from PDF, DOCX, and TXT files
+- Provides match scores (0-100%) between candidate CV and job description
+- Identifies strengths and gaps in candidate profiles
+- Generates custom interview questions based on analysis
+
+### Interview Notes AI
+- Analyzes interview notes, strengths, and weaknesses
+- Provides objective assessment of candidate fit
+- Suggests hiring recommendations based on interview data
+
+---
+
+## Core Features
+
+### User Management
+- Admin and customer roles with different permissions
+- Admin panel for user creation, editing, and deletion
+- Secure authentication via Supabase
+
+### Job Management
+- Create, edit, and delete job postings
+- View job details with associated candidates
+- Filter jobs by customer (admin view)
+
+### Candidate Management
+- Add candidates manually or via CV upload (PDF, DOCX, TXT)
+- AI-powered CV analysis against job descriptions
+- Match scoring (0-100%)
+- Strengths, gaps, and interview question suggestions
+- Batch CV screening
+
+### Kanban Pipeline
+- Visual pipeline with columns: New, Reviewed, Interview, Hired, Rejected
+- Drag-and-drop from New to Reviewed only
+- Status updates propagate to calendar and interview notes
+
+### Interview Calendar
+- Schedule interviews with candidates
+- Set interview type (online, phone, onsite)
+- Add meeting links and notes
+- Move candidates to Interview stage automatically
+
+### Interview Notes
+- Record interview notes, strengths, weaknesses, and ratings
+- AI analysis of interview notes
+- Make final decisions (Hire / Further Review / Reject)
+- Decisions update candidate status and trigger notifications
+
+### Notifications
+- Real-time notifications for interview schedules and hiring decisions
+- Bell icon with unread count indicator
+
+---
+
+### Environment Variables
+
+Create a `.env.local` file based on `.env.example`:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+OPENAI_API_KEY=your_openai_api_key
+```
+---
+## Database Schema
+Required tables (set up in Supabase):
+
+| Table           | Description                                            |
+|-----------------|--------------------------------------------------------|
+| profiles        | User profiles with role, company name, etc.            |
+| jobs            | Job postings with title, description, customer_id, etc. |
+| candidates      | Candidate info with status, CV text/URL, AI analysis, etc. |
+| interviews      | Scheduled interviews with date, type, meeting link, etc. |
+| interview_notes | Notes, ratings, decisions from interviews, etc.        |
+| notifications   | User notifications for events                          |
+ 
+
+---
+
+### Getting Started
+
+1. Clone the repository
+
+```bash
+git clone https://github.com/yourusername/mini-ats.git
+cd mini-ats
+```
+
+2. Install dependencies
+
+```bash
+npm install
+```
+
+3. Set up environment variables (see above)
+4. Run the development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open http://localhost:3000/login
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Default Admin Account
 
-## Learn More
+The first admin user must be created manually in Supabase:
 
-To learn more about Next.js, take a look at the following resources:
+1. Go to your Supabase Dashboard → Authentication → Users
+2. Click "Add User"
+3. Enter email and password
+4. After creation, update the user's role in the `profiles` table to `admin`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Alternatively, use the admin API endpoints if you have existing admin credentials.  
+Subsequent admins can be created via the Admin panel.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+### Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```text
+├── app/
+│   ├── api/
+│   │   ├── admin/
+│   │   │   ├── create-user/route.ts
+│   │   │   ├── delete-user/route.ts
+│   │   │   ├── update-user-email/route.ts
+│   │   │   └── update-user-password/route.ts
+│   │   ├── ai/
+│   │   │   ├── gap-analysis/route.ts
+│   │   │   ├── generate-questions/route.ts
+│   │   │   └── optimize-job/route.ts
+│   │   ├── analyze-cv/route.ts
+│   │   ├── analyze-interview-notes/route.ts
+│   │   └── chatbot/route.ts
+│   ├── dashboard/
+│   │   ├── admin/page.tsx
+│   │   ├── ai/page.tsx
+│   │   ├── calendar/page.tsx
+│   │   ├── candidates/page.tsx
+│   │   ├── jobs/page.tsx
+│   │   ├── kanban/page.tsx
+│   │   ├── notes/page.tsx
+│   │   └── page.tsx
+│   ├── login/page.tsx
+│   └── layout.tsx
+├── components/
+│   ├── Calendar.tsx
+│   ├── ChatBot.tsx
+│   └── NotificationBell.tsx
+├── lib/
+│   └── supabase/
+│       └── client.ts
+├── middleware.ts
+└── package.json
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### AI API Endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/api/analyze-cv` | Analyzes CV against job description, returns match score, strengths, gaps, and questions |
+| `/api/analyze-interview-notes` | AI analysis of interview notes |
+| `/api/chatbot` | AI recruitment assistant for general questions |
+| `/api/ai/gap-analysis` | Provides detailed gap analysis with missing skills, weak areas, training suggestions |
+| `/api/ai/generate-questions` | Generates technical, behavioral, and role-specific interview questions |
+| `/api/ai/optimize-job` | Optimizes job descriptions for inclusivity and engagement |
+
+---
+
+### Authentication Flow
+
+- Users sign in via email/password
+- Admins can create new users via the Admin panel
+- New users are created in Supabase Auth with email confirmation auto-enabled
+- Profiles table stores role and additional user data
+
+---
+
+### Workflow Guide with AI Assistance
+
+1. Admin creates customer accounts
+
+2. Customer creates job postings  
+   *(Use AI Job Description Optimizer for better results)*
+
+3. Customer adds candidates  
+   *(Manual or CV upload)*
+
+4. AI analyzes CVs and provides:
+    - Match scores (0–100%)
+    - Identified strengths
+    - Skill gaps
+    - Suggested interview questions
+
+5. Customer reviews ranked candidates and moves them from **New → Reviewed**
+
+6. Customer schedules interviews via Calendar
+
+7. Customer records interview notes and uses AI analysis for objective assessment
+
+8. Customer makes final decision:
+    - Hire
+    - Further Review
+    - Reject
+
+9. Candidate status updates to **Hired** or **Rejected** with automatic notifications
+
+AI Chatbot is available throughout the entire process for guidance and best practices
+
+---
+
+#### License
+
+```text
+Apache License 2.0
+```
