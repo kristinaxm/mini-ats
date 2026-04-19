@@ -48,6 +48,7 @@ Dedicated page with multiple AI-powered recruitment tools:
 
 ## Core Features
 
+  
 ### User Management
 - Admin and customer roles with different permissions
 - Admin panel for user creation, editing, and deletion
@@ -119,7 +120,7 @@ Required tables (set up in Supabase):
 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/mini-ats.git
+git clone https://github.com/kristinaxm/mini-ats.git
 cd mini-ats
 ```
 
