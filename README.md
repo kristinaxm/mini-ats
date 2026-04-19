@@ -115,6 +115,24 @@ Required tables (set up in Supabase):
 
 ---
 
+### Dependencies
+
+Key packages used in this project:
+
+| Package | Purpose |
+|---------|--------|
+| next | React framework |
+| @supabase/supabase-js | Database and authentication |
+| openai | AI-powered CV analysis and chatbot |
+| pdf2json | PDF text extraction from CVs |
+| mammoth | DOCX text extraction from CVs |
+| tailwindcss | Styling |
+| @dnd-kit/core | Drag-and-drop for Kanban board |
+| @radix-ui/react-dialog | Modal dialogs |
+| lucide-react | Icons |
+
+---
+
 ### Getting Started
 
 1. Clone the repository
