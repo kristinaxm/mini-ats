@@ -12,58 +12,112 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true)
     const [jobs, setJobs] = useState<any[]>([])
     const [candidates, setCandidates] = useState<any[]>([])
+    const [stats, setStats] = useState({ totalJobs: 0, totalCandidates: 0, hired: 0, interview: 0, reviewed: 0, new: 0, rejected: 0 })
+
     const router = useRouter()
     const supabase = createClient()
 
+    const getAllStats = async () => {
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (!authUser) return { totalJobs: 0, totalCandidates: 0, hired: 0, interview: 0, reviewed: 0, new: 0, rejected: 0 }
+
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authUser.id)
+            .single()
+
+        const customerId = profileData?.role === 'admin' ? null : authUser.id
+
+        let jobsQuery = supabase.from('jobs').select('id', { count: 'exact', head: false })
+        if (customerId) {
+            jobsQuery = jobsQuery.eq('customer_id', customerId)
+        }
+        const { count: totalJobs } = await jobsQuery
+
+        let candidatesQuery = supabase.from('candidates').select('status', { count: 'exact', head: false })
+        if (customerId) {
+            candidatesQuery = candidatesQuery.eq('customer_id', customerId)
+        }
+        const { data: allCandidates } = await candidatesQuery
+
+        const totalCandidates = allCandidates?.length || 0
+        const hired = allCandidates?.filter(c => c.status === 'hired').length || 0
+        const interview = allCandidates?.filter(c => c.status === 'interview').length || 0
+        const reviewed = allCandidates?.filter(c => c.status === 'reviewed').length || 0
+        const newCount = allCandidates?.filter(c => c.status === 'new').length || 0
+        const rejected = allCandidates?.filter(c => c.status === 'rejected').length || 0
+
+        return { totalJobs: totalJobs || 0, totalCandidates, hired, interview, reviewed, new: newCount, rejected }
+    }
+
+    const loadData = async () => {
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (!authUser) return
+
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authUser.id)
+            .single()
+
+        const customerId = profileData?.role === 'admin' ? null : authUser.id
+
+        let jobsQuery = supabase.from('jobs').select('*')
+        if (customerId) {
+            jobsQuery = jobsQuery.eq('customer_id', customerId)
+        }
+        const { data: jobsData } = await jobsQuery.limit(5)
+        setJobs(jobsData || [])
+
+        let candidatesQuery = supabase
+            .from('candidates')
+            .select('*, jobs(title)')
+        if (customerId) {
+            candidatesQuery = candidatesQuery.eq('customer_id', customerId)
+        }
+        const { data: candidatesData } = await candidatesQuery.limit(5)
+        setCandidates(candidatesData || [])
+    }
+
     useEffect(() => {
         const checkUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
+            const { data: { user: authUser } } = await supabase.auth.getUser()
+            if (!authUser) {
                 router.push('/login')
                 return
             }
-            setUser(user)
+            setUser(authUser)
 
-            const { data: profile } = await supabase
+            const { data: profileData } = await supabase
                 .from('profiles')
                 .select('*')
-                .eq('id', user.id)
+                .eq('id', authUser.id)
                 .single()
-            setProfile(profile)
+            setProfile(profileData)
 
-            const customerId = profile?.role === 'admin' ? null : user.id
+            await loadData()
 
-            if (customerId) {
-                const { data: jobs } = await supabase
-                    .from('jobs')
-                    .select('*')
-                    .eq('customer_id', customerId)
-                    .limit(5)
-                setJobs(jobs || [])
-
-                const { data: candidates } = await supabase
-                    .from('candidates')
-                    .select('*, jobs(title)')
-                    .eq('customer_id', customerId)
-                    .limit(5)
-                setCandidates(candidates || [])
-            } else if (profile?.role === 'admin') {
-                const { data: jobs } = await supabase
-                    .from('jobs')
-                    .select('*')
-                    .limit(5)
-                setJobs(jobs || [])
-
-                const { data: candidates } = await supabase
-                    .from('candidates')
-                    .select('*, jobs(title)')
-                    .limit(5)
-                setCandidates(candidates || [])
-            }
+            const statsData = await getAllStats()
+            setStats(statsData)
 
             setLoading(false)
         }
         checkUser()
+    }, [])
+
+    useEffect(() => {
+        const handleRefresh = async () => {
+            await loadData()
+            const statsData = await getAllStats()
+            setStats(statsData)
+        }
+
+        window.addEventListener('refreshKanban', handleRefresh)
+
+        return () => {
+            window.removeEventListener('refreshKanban', handleRefresh)
+        }
     }, [])
 
     const handleLogout = async () => {
@@ -82,13 +136,6 @@ export default function DashboardPage() {
                 </div>
             </div>
         )
-    }
-
-    const stats = {
-        totalJobs: jobs.length,
-        totalCandidates: candidates.length,
-        hired: candidates.filter(c => c.status === 'hired').length,
-        interview: candidates.filter(c => c.status === 'interview').length
     }
 
     const navItems = [
@@ -177,6 +224,21 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6">
+                            <p className="text-sm text-gray-500">New</p>
+                            <p className="text-2xl font-bold text-gray-800">{stats.new}</p>
+                        </div>
+                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6">
+                            <p className="text-sm text-gray-500">Reviewed</p>
+                            <p className="text-2xl font-bold text-gray-800">{stats.reviewed}</p>
+                        </div>
+                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6">
+                            <p className="text-sm text-gray-500">Rejected</p>
+                            <p className="text-2xl font-bold text-gray-800">{stats.rejected}</p>
+                        </div>
+                    </div>
+
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl overflow-hidden">
                             <div className="px-6 py-4 border-b border-gray-200">
@@ -207,6 +269,15 @@ export default function DashboardPage() {
                                     <div key={candidate.id} className="px-6 py-4">
                                         <p className="font-medium text-gray-800">{candidate.name}</p>
                                         <p className="text-sm text-gray-500">{candidate.jobs?.title}</p>
+                                        <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-full ${
+                                            candidate.status === 'new' ? 'bg-gray-100 text-gray-700' :
+                                                candidate.status === 'reviewed' ? 'bg-gray-200 text-gray-700' :
+                                                    candidate.status === 'interview' ? 'bg-gray-300 text-gray-800' :
+                                                        candidate.status === 'hired' ? 'bg-green-100 text-green-700' :
+                                                            'bg-red-100 text-red-700'
+                                        }`}>
+                                            {candidate.status}
+                                        </span>
                                     </div>
                                 ))}
                                 {candidates.length === 0 && (
