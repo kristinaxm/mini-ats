@@ -5,6 +5,11 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import NotificationBell from '@/components/NotificationBell'
+import {
+    LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    AreaChart, Area
+} from 'recharts'
 
 export default function DashboardPage() {
     const [user, setUser] = useState<any>(null)
@@ -12,14 +17,17 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true)
     const [jobs, setJobs] = useState<any[]>([])
     const [candidates, setCandidates] = useState<any[]>([])
-    const [stats, setStats] = useState({ totalJobs: 0, totalCandidates: 0, hired: 0, interview: 0, reviewed: 0, new: 0, rejected: 0 })
+    const [stats, setStats] = useState({ totalJobs: 0, totalCandidates: 0, hired: 0, active: 0 })
+    const [monthlyData, setMonthlyData] = useState<any[]>([])
+    const [statusData, setStatusData] = useState<any[]>([])
+    const [trendData, setTrendData] = useState<any[]>([])
 
     const router = useRouter()
     const supabase = createClient()
 
     const getAllStats = async () => {
         const { data: { user: authUser } } = await supabase.auth.getUser()
-        if (!authUser) return { totalJobs: 0, totalCandidates: 0, hired: 0, interview: 0, reviewed: 0, new: 0, rejected: 0 }
+        if (!authUser) return { totalJobs: 0, totalCandidates: 0, hired: 0, active: 0 }
 
         const { data: profileData } = await supabase
             .from('profiles')
@@ -35,7 +43,7 @@ export default function DashboardPage() {
         }
         const { count: totalJobs } = await jobsQuery
 
-        let candidatesQuery = supabase.from('candidates').select('status', { count: 'exact', head: false })
+        let candidatesQuery = supabase.from('candidates').select('status, created_at', { count: 'exact', head: false })
         if (customerId) {
             candidatesQuery = candidatesQuery.eq('customer_id', customerId)
         }
@@ -43,12 +51,56 @@ export default function DashboardPage() {
 
         const totalCandidates = allCandidates?.length || 0
         const hired = allCandidates?.filter(c => c.status === 'hired').length || 0
-        const interview = allCandidates?.filter(c => c.status === 'interview').length || 0
-        const reviewed = allCandidates?.filter(c => c.status === 'reviewed').length || 0
-        const newCount = allCandidates?.filter(c => c.status === 'new').length || 0
-        const rejected = allCandidates?.filter(c => c.status === 'rejected').length || 0
+        const active = allCandidates?.filter(c => ['new', 'reviewed', 'interview'].includes(c.status)).length || 0
 
-        return { totalJobs: totalJobs || 0, totalCandidates, hired, interview, reviewed, new: newCount, rejected }
+        if (allCandidates && allCandidates.length > 0) {
+            const last6Months = []
+            const today = new Date()
+            for (let i = 5; i >= 0; i--) {
+                const month = new Date(today.getFullYear(), today.getMonth() - i, 1)
+                const monthName = month.toLocaleString('default', { month: 'short' })
+                const candidatesInMonth = allCandidates.filter(c => {
+                    const createdAt = new Date(c.created_at)
+                    return createdAt.getMonth() === month.getMonth() &&
+                        createdAt.getFullYear() === month.getFullYear()
+                })
+                last6Months.push({
+                    month: monthName,
+                    candidates: candidatesInMonth.length,
+                    hired: candidatesInMonth.filter(c => c.status === 'hired').length
+                })
+            }
+            setMonthlyData(last6Months)
+
+            const hiredCount = allCandidates.filter(c => c.status === 'hired').length || 0
+            const rejectedCount = allCandidates.filter(c => c.status === 'rejected').length || 0
+            const activeCount = allCandidates.filter(c => ['new', 'reviewed', 'interview'].includes(c.status)).length || 0
+
+            const statusCounts = [
+                { name: 'Active', value: activeCount, color: '#6b7280' },
+                { name: 'Hired', value: hiredCount, color: '#374151' },
+                { name: 'Rejected', value: rejectedCount, color: '#9ca3af' }
+            ].filter(s => s.value > 0)
+            setStatusData(statusCounts)
+
+            const last30Days = []
+            for (let i = 29; i >= 0; i--) {
+                const date = new Date()
+                date.setDate(date.getDate() - i)
+                const dayStr = date.toLocaleDateString('default', { month: 'short', day: 'numeric' })
+                const candidatesOnDay = allCandidates.filter(c => {
+                    const createdAt = new Date(c.created_at)
+                    return createdAt.toDateString() === date.toDateString()
+                })
+                last30Days.push({
+                    day: dayStr,
+                    count: candidatesOnDay.length
+                })
+            }
+            setTrendData(last30Days)
+        }
+
+        return { totalJobs: totalJobs || 0, totalCandidates, hired, active }
     }
 
     const loadData = async () => {
@@ -125,6 +177,22 @@ export default function DashboardPage() {
         router.push('/login')
     }
 
+    const CustomTooltip = ({ active, payload, label }: any) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg p-3 shadow-lg">
+                    <p className="text-sm font-medium text-gray-700">{label}</p>
+                    {payload.map((p: any, idx: number) => (
+                        <p key={idx} className="text-sm text-gray-600">
+                            {p.name}: {p.value}
+                        </p>
+                    ))}
+                </div>
+            )
+        }
+        return null
+    }
+
     if (loading) {
         return (
             <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-400 via-gray-300 to-gray-400">
@@ -139,18 +207,20 @@ export default function DashboardPage() {
     }
 
     const navItems = [
-        { name: 'Overview', href: '/dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-        { name: 'Jobs', href: '/dashboard/jobs', icon: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
-        { name: 'Candidates', href: '/dashboard/candidates', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z' },
-        { name: 'Kanban', href: '/dashboard/kanban', icon: 'M4 6h16M4 12h16M4 18h16' },
-        { name: 'Calendar', href: '/dashboard/calendar', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-        { name: 'AI Screening', href: '/dashboard/ai', icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' },
-        { name: 'Interview Notes', href: '/dashboard/notes', icon: 'M12 4v16m8-8H4' },
+        { name: 'Overview', href: '/dashboard' },
+        { name: 'Jobs', href: '/dashboard/jobs' },
+        { name: 'Candidates', href: '/dashboard/candidates' },
+        { name: 'Kanban', href: '/dashboard/kanban' },
+        { name: 'Calendar', href: '/dashboard/calendar' },
+        { name: 'AI Screening', href: '/dashboard/ai' },
+        { name: 'Interview Notes', href: '/dashboard/notes' },
     ]
 
     if (profile?.role === 'admin') {
-        navItems.push({ name: 'Admin', href: '/dashboard/admin', icon: 'M12 4v16m8-8H4' })
+        navItems.push({ name: 'Admin', href: '/dashboard/admin' })
     }
+
+    const displayName = profile?.full_name || profile?.name || user?.email?.split('@')[0] || 'User'
 
     return (
         <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-gray-400 via-gray-300 to-gray-400">
@@ -185,7 +255,7 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-4">
                             <NotificationBell />
                             <span className="text-sm text-gray-500 hidden md:block">
-                                {user?.email} ({profile?.role === 'admin' ? 'Admin' : 'Customer'})
+                                {displayName} ({profile?.role === 'admin' ? 'Admin' : 'Customer'})
                             </span>
                             <button
                                 onClick={handleLogout}
@@ -202,42 +272,105 @@ export default function DashboardPage() {
                 <div className="max-w-7xl mx-auto">
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-gray-800">Dashboard Overview</h1>
-                        <p className="text-gray-500 mt-1">Welcome back, {user?.email}</p>
+                        <p className="text-gray-500 mt-1">Welcome back, {displayName}</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6 hover:shadow-2xl transition-all hover:-translate-y-1">
                             <p className="text-sm text-gray-500">Total Jobs</p>
-                            <p className="text-2xl font-bold text-gray-800">{stats.totalJobs}</p>
+                            <p className="text-3xl font-bold text-gray-800">{stats.totalJobs}</p>
                         </div>
-                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6">
+                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6 hover:shadow-2xl transition-all hover:-translate-y-1">
                             <p className="text-sm text-gray-500">Total Candidates</p>
-                            <p className="text-2xl font-bold text-gray-800">{stats.totalCandidates}</p>
+                            <p className="text-3xl font-bold text-gray-800">{stats.totalCandidates}</p>
                         </div>
-                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6">
-                            <p className="text-sm text-gray-500">In Interview</p>
-                            <p className="text-2xl font-bold text-gray-800">{stats.interview}</p>
+                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6 hover:shadow-2xl transition-all hover:-translate-y-1">
+                            <p className="text-sm text-gray-500">Active Process</p>
+                            <p className="text-3xl font-bold text-gray-800">{stats.active}</p>
                         </div>
-                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6">
+                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6 hover:shadow-2xl transition-all hover:-translate-y-1">
                             <p className="text-sm text-gray-500">Hired</p>
-                            <p className="text-2xl font-bold text-gray-800">{stats.hired}</p>
+                            <p className="text-3xl font-bold text-gray-800">{stats.hired}</p>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6">
-                            <p className="text-sm text-gray-500">New</p>
-                            <p className="text-2xl font-bold text-gray-800">{stats.new}</p>
+                    <div className="grid lg:grid-cols-2 gap-6 mb-8">
+                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 p-6 shadow-xl">
+                            <h3 className="text-gray-800 font-semibold mb-4">Monthly Candidate Trends</h3>
+                            <ResponsiveContainer width="100%" height={280}>
+                                <AreaChart data={monthlyData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                                    <XAxis dataKey="month" stroke="#6b7280" />
+                                    <YAxis stroke="#6b7280" />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="candidates"
+                                        name="Total Candidates"
+                                        stroke="#6b7280"
+                                        fill="#9ca3af"
+                                        fillOpacity={0.3}
+                                        strokeWidth={2}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="hired"
+                                        name="Hired"
+                                        stroke="#374151"
+                                        strokeWidth={2}
+                                        dot={{ fill: '#374151', r: 4 }}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
-                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6">
-                            <p className="text-sm text-gray-500">Reviewed</p>
-                            <p className="text-2xl font-bold text-gray-800">{stats.reviewed}</p>
-                        </div>
-                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl p-6">
-                            <p className="text-sm text-gray-500">Rejected</p>
-                            <p className="text-2xl font-bold text-gray-800">{stats.rejected}</p>
+
+                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 p-6 shadow-xl">
+                            <h3 className="text-gray-800 font-semibold mb-4">Candidate Pipeline</h3>
+                            <ResponsiveContainer width="100%" height={280}>
+                                <PieChart>
+                                    <Pie
+                                        data={statusData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={100}
+                                        paddingAngle={2}
+                                        dataKey="value"
+                                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                        labelLine={false}
+                                    >
+                                        {statusData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip content={<CustomTooltip />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="flex justify-center gap-6 mt-4 text-sm">
+                                {statusData.map(s => (
+                                    <div key={s.name} className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }}></div>
+                                        <span className="text-gray-600">{s.name}: {s.value}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
+
+                    {trendData.length > 0 && (
+                        <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 p-6 shadow-xl mb-8">
+                            <h3 className="text-gray-800 font-semibold mb-4">30-Day Candidate Activity</h3>
+                            <ResponsiveContainer width="100%" height={250}>
+                                <BarChart data={trendData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
+                                    <XAxis dataKey="day" stroke="#6b7280" tick={{ fontSize: 10 }} interval={5} />
+                                    <YAxis stroke="#6b7280" />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Bar dataKey="count" name="New Candidates" fill="#9ca3af" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
 
                     <div className="grid md:grid-cols-2 gap-8">
                         <div className="bg-white/70 backdrop-blur-xl rounded-2xl border border-gray-300 shadow-xl overflow-hidden">
@@ -246,7 +379,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="divide-y divide-gray-200">
                                 {jobs.slice(0, 5).map(job => (
-                                    <div key={job.id} className="px-6 py-4">
+                                    <div key={job.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                                         <p className="font-medium text-gray-800">{job.title}</p>
                                         <p className="text-sm text-gray-500 mt-1">{job.description?.substring(0, 100)}...</p>
                                     </div>
@@ -266,17 +399,18 @@ export default function DashboardPage() {
                             </div>
                             <div className="divide-y divide-gray-200">
                                 {candidates.slice(0, 5).map(candidate => (
-                                    <div key={candidate.id} className="px-6 py-4">
+                                    <div key={candidate.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                                         <p className="font-medium text-gray-800">{candidate.name}</p>
                                         <p className="text-sm text-gray-500">{candidate.jobs?.title}</p>
                                         <span className={`inline-block mt-1 px-2 py-0.5 text-xs rounded-full ${
-                                            candidate.status === 'new' ? 'bg-gray-100 text-gray-700' :
-                                                candidate.status === 'reviewed' ? 'bg-gray-200 text-gray-700' :
-                                                    candidate.status === 'interview' ? 'bg-gray-300 text-gray-800' :
-                                                        candidate.status === 'hired' ? 'bg-green-100 text-green-700' :
-                                                            'bg-red-100 text-red-700'
+                                            candidate.status === 'hired' ? 'bg-green-100 text-green-700' :
+                                                candidate.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                    'bg-gray-200 text-gray-700'
                                         }`}>
-                                            {candidate.status}
+                                            {candidate.status === 'new' ? 'New' :
+                                                candidate.status === 'reviewed' ? 'Reviewed' :
+                                                    candidate.status === 'interview' ? 'Interview' :
+                                                        candidate.status}
                                         </span>
                                     </div>
                                 ))}
