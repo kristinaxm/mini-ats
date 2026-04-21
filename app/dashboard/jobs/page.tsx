@@ -372,7 +372,7 @@ export default function JobsPage() {
                     <div className="flex items-center gap-4">
                         <NotificationBell />
                         <span className="hidden text-sm text-gray-500 md:block">
-                            {profile?.full_name || user?.email?.split('@')[0] || 'User'}
+                            {profile?.full_name || user?.email?.split('@')[0] || 'User'} ({isAdmin ? 'Admin' : 'Customer'})
                         </span>
                         <button
                             onClick={handleLogout}
