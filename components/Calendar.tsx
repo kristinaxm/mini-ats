@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 type Interview = {
@@ -259,12 +258,14 @@ export default function Calendar() {
         }
     }
 
-    const getDaysInMonth = (date: Date) => {
-        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+    const getFirstDayOfMonth = (date: Date) => {
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1)
+        const dayOfWeek = firstDay.getDay()
+        return dayOfWeek === 0 ? 6 : dayOfWeek - 1
     }
 
-    const getFirstDayOfMonth = (date: Date) => {
-        return new Date(date.getFullYear(), date.getMonth(), 1).getDay()
+    const getDaysInMonth = (date: Date) => {
+        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
     }
 
     const hasInterviewOnDate = (day: number) => {
@@ -278,13 +279,18 @@ export default function Calendar() {
     }
 
     const changeMonth = (increment: number) => {
-        setSelectedDate(new Date(selectedDate.getFullYear(), selectedDate.getMonth() + increment, 1))
+        const newDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + increment, 1)
+        setSelectedDate(newDate)
+    }
+
+    const goToToday = () => {
+        setSelectedDate(new Date())
     }
 
     const daysInMonth = getDaysInMonth(selectedDate)
     const firstDay = getFirstDayOfMonth(selectedDate)
     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
-    const blanks = Array.from({ length: firstDay === 0 ? 6 : firstDay - 1 }, (_, i) => i)
+    const blanks = Array.from({ length: firstDay }, (_, i) => i)
 
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -300,31 +306,41 @@ export default function Calendar() {
                 <div className="flex gap-2">
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-4 py-2 rounded-lg text-sm hover:from-gray-500 hover:to-gray-600 transition-all"
+                        className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-4 py-2 rounded-lg text-sm hover:from-gray-500 hover:to-gray-600 transition-all shadow-md"
                     >
-                        Schedule Interview
+                        + Schedule Interview
                     </button>
-                    <button
-                        onClick={() => changeMonth(-1)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                        ←
-                    </button>
-                    <span className="text-lg font-medium text-gray-700">
-                        {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
-                    </span>
-                    <button
-                        onClick={() => changeMonth(1)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                        →
-                    </button>
+                    <div className="flex items-center gap-1 bg-gray-100/80 rounded-lg p-1 shadow-sm">
+                        <button
+                            onClick={() => changeMonth(-1)}
+                            className="p-2 bg-white hover:bg-gray-200 rounded-md transition-colors shadow-sm text-gray-700 font-bold"
+                            aria-label="Previous month"
+                        >
+                            ◀
+                        </button>
+                        <button
+                            onClick={goToToday}
+                            className="px-3 py-2 text-sm bg-gray-700 hover:bg-gray-800 text-white rounded-md transition-colors font-medium"
+                        >
+                            Today
+                        </button>
+                        <span className="text-lg font-semibold text-gray-800 min-w-[160px] text-center px-2">
+                            {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
+                        </span>
+                        <button
+                            onClick={() => changeMonth(1)}
+                            className="p-2 bg-white hover:bg-gray-200 rounded-md transition-colors shadow-sm text-gray-700 font-bold"
+                            aria-label="Next month"
+                        >
+                            ▶
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <div className="grid grid-cols-7 gap-2 mb-2">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                    <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                    <div key={day} className="text-center text-sm font-medium text-gray-600 py-2 bg-gray-100/50 rounded-lg">
                         {day}
                     </div>
                 ))}
@@ -332,7 +348,7 @@ export default function Calendar() {
 
             <div className="grid grid-cols-7 gap-2 mb-8">
                 {blanks.map((_, i) => (
-                    <div key={`blank-${i}`} className="bg-gray-50 rounded-lg p-2 min-h-[100px]" />
+                    <div key={`blank-${i}`} className="bg-gray-50/50 rounded-lg p-2 min-h-[100px]" />
                 ))}
 
                 {days.map(day => {
@@ -343,7 +359,7 @@ export default function Calendar() {
                         <div
                             key={day}
                             className={`bg-white border rounded-lg p-2 min-h-[100px] hover:shadow-md transition-all cursor-pointer ${
-                                hasInterview ? 'border-gray-500 bg-gray-100' : 'border-gray-200'
+                                hasInterview ? 'border-gray-400 shadow-sm bg-gray-50' : 'border-gray-200'
                             }`}
                             onClick={() => {
                                 if (dayInterviews.length > 0) {
@@ -352,7 +368,7 @@ export default function Calendar() {
                                 }
                             }}
                         >
-                            <span className={`text-sm font-medium ${hasInterview ? 'text-gray-700' : 'text-gray-500'}`}>
+                            <span className={`text-sm font-medium ${hasInterview ? 'text-gray-800' : 'text-gray-500'}`}>
                                 {day}
                             </span>
                             {dayInterviews.slice(0, 2).map(interview => (
@@ -362,7 +378,7 @@ export default function Calendar() {
                                 </div>
                             ))}
                             {dayInterviews.length > 2 && (
-                                <p className="text-xs text-gray-400 mt-1">+{dayInterviews.length - 2} more</p>
+                                <p className="text-xs text-gray-500 mt-1 font-medium">+{dayInterviews.length - 2} more</p>
                             )}
                         </div>
                     )
@@ -373,7 +389,7 @@ export default function Calendar() {
                 <div>
                     <h3 className="font-semibold text-gray-800 mb-3 text-sm">
                         Upcoming Interviews
-                        <span className="ml-2 text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">{upcomingInterviews.length}</span>
+                        <span className="ml-2 text-xs bg-gray-700 text-white px-2 py-0.5 rounded-full">{upcomingInterviews.length}</span>
                     </h3>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                         {upcomingInterviews.length > 0 ? (
@@ -384,14 +400,14 @@ export default function Calendar() {
                                         setSelectedInterview(interview)
                                         setShowModal(true)
                                     }}
-                                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors border border-gray-200"
+                                    className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-100 cursor-pointer transition-colors border border-gray-200 shadow-sm"
                                 >
                                     <div>
                                         <p className="font-medium text-gray-800">{interview.candidate_name}</p>
                                         <p className="text-xs text-gray-500">{interview.job_title}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm text-gray-600 font-medium">
+                                        <p className="text-sm text-gray-700 font-medium">
                                             {new Date(interview.interview_date).toLocaleDateString()}
                                         </p>
                                         <p className="text-xs text-gray-400 capitalize">{interview.interview_type}</p>
@@ -407,7 +423,7 @@ export default function Calendar() {
                 <div>
                     <h3 className="font-semibold text-gray-800 mb-3 text-sm">
                         Waiting for Decision
-                        <span className="ml-2 text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">{waitingForDecision.length}</span>
+                        <span className="ml-2 text-xs bg-gray-700 text-white px-2 py-0.5 rounded-full">{waitingForDecision.length}</span>
                     </h3>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                         {waitingForDecision.length > 0 ? (
@@ -418,17 +434,17 @@ export default function Calendar() {
                                         setSelectedInterview(interview)
                                         setShowModal(true)
                                     }}
-                                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors border border-gray-200"
+                                    className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg hover:bg-yellow-100 cursor-pointer transition-colors border border-yellow-200 shadow-sm"
                                 >
                                     <div>
                                         <p className="font-medium text-gray-800">{interview.candidate_name}</p>
                                         <p className="text-xs text-gray-500">{interview.job_title}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm text-gray-600 font-medium">
+                                        <p className="text-sm text-gray-700 font-medium">
                                             {new Date(interview.interview_date).toLocaleDateString()}
                                         </p>
-                                        <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                                        <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full font-medium">
                                             Pending
                                         </span>
                                     </div>
@@ -443,7 +459,7 @@ export default function Calendar() {
                 <div>
                     <h3 className="font-semibold text-gray-800 mb-3 text-sm">
                         Completed
-                        <span className="ml-2 text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">{completedInterviews.length}</span>
+                        <span className="ml-2 text-xs bg-gray-700 text-white px-2 py-0.5 rounded-full">{completedInterviews.length}</span>
                     </h3>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                         {completedInterviews.length > 0 ? (
@@ -460,7 +476,7 @@ export default function Calendar() {
                                         <p className="text-sm text-gray-500">
                                             {new Date(interview.interview_date).toLocaleDateString()}
                                         </p>
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                                             interview.candidate_status === 'hired'
                                                 ? 'bg-green-100 text-green-700'
                                                 : 'bg-red-100 text-red-700'

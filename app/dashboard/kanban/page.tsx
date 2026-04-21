@@ -40,6 +40,7 @@ export default function KanbanPage() {
     const [candidates, setCandidates] = useState<Candidate[]>([])
     const [jobs, setJobs] = useState<Job[]>([])
     const [selectedJobId, setSelectedJobId] = useState<string>('all')
+    const [searchQuery, setSearchQuery] = useState<string>('')
     const [draggedCandidate, setDraggedCandidate] = useState<Candidate | null>(null)
     const [showCandidateModal, setShowCandidateModal] = useState(false)
     const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null)
@@ -191,8 +192,23 @@ export default function KanbanPage() {
     }
 
     const getFilteredCandidates = () => {
-        if (selectedJobId === 'all') return candidates
-        return candidates.filter(c => c.job_id === selectedJobId)
+        let filtered = candidates
+
+        if (selectedJobId !== 'all') {
+            filtered = filtered.filter(c => c.job_id === selectedJobId)
+        }
+
+        if (searchQuery.trim() !== '') {
+            const query = searchQuery.toLowerCase()
+            filtered = filtered.filter(c =>
+                c.name.toLowerCase().includes(query) ||
+                (c.title && c.title.toLowerCase().includes(query)) ||
+                (c.jobs?.title && c.jobs.title.toLowerCase().includes(query)) ||
+                (c.email && c.email.toLowerCase().includes(query))
+            )
+        }
+
+        return filtered
     }
 
     const getCandidatesByStatus = (status: string) => {
@@ -302,19 +318,62 @@ export default function KanbanPage() {
                             </p>
                         </div>
 
-                        <div className="min-w-64">
-                            <select
-                                value={selectedJobId}
-                                onChange={(e) => setSelectedJobId(e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400"
-                            >
-                                <option value="all">All Jobs</option>
-                                {jobs.map(job => (
-                                    <option key={job.id} value={job.id}>{job.title}</option>
-                                ))}
-                            </select>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            {/* Sökfält */}
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search candidates, jobs, etc..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full sm:w-64 rounded-lg border border-gray-300 bg-white px-3 py-2 pl-9 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                                />
+                                <svg
+                                    className="absolute left-3 top-2.5 h-4 w-4 text-gray-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                                    >
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="min-w-48">
+                                <select
+                                    value={selectedJobId}
+                                    onChange={(e) => setSelectedJobId(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                                >
+                                    <option value="all">All Jobs</option>
+                                    {jobs.map(job => (
+                                        <option key={job.id} value={job.id}>{job.title}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </div>
+
+                    {searchQuery && (
+                        <div className="mb-4 text-sm text-gray-600">
+                            Found {getFilteredCandidates().length} candidate(s) matching "{searchQuery}"
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="ml-2 text-gray-400 hover:text-gray-600 underline"
+                            >
+                                Clear search
+                            </button>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                         {STATUS_COLUMNS.map(column => {
@@ -466,7 +525,7 @@ export default function KanbanPage() {
                             {selectedCandidate.status === 'interview' && (
                                 <div className="mt-2 p-3 bg-gray-100 border border-gray-300 rounded-lg">
                                     <p className="text-xs text-gray-600 text-center">
-                                        This candidate is ready for a decision. Go to Interview Notes to hire or reject.
+                                        Go to Interview Notes to review, hire or reject.
                                     </p>
                                 </div>
                             )}
