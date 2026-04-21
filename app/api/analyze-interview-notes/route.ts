@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server'
-import OpenAI from 'openai'
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-})
+import { NextResponse } from 'next/server';
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
 
 export async function POST(request: Request) {
     try {
-        const { notes, strengths, weaknesses, jobTitle, candidateName } = await request.json()
+        const { notes, strengths, weaknesses, jobTitle, candidateName } = await request.json();
 
         const prompt = `
 You are an expert recruitment consultant analyzing interview notes.
@@ -25,34 +25,21 @@ Based on these interview notes, provide a brief analysis (2-3 sentences) that:
 2. Highlights key concerns or strengths
 3. Gives a clear recommendation (Hire / Further Review / Reject)
 
-Keep it professional, concise, and actionable.
-`
+Keep it professional, concise, and actionable.`;
 
-        const response = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are an experienced recruitment consultant. Provide clear, actionable interview feedback.'
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
+        const { text } = await generateText({
+            model: groq('llama-3.3-70b-versatile'),
+            prompt: prompt,
             temperature: 0.5,
-            max_tokens: 200,
-        })
+        });
 
-        const analysis = response.choices[0].message.content
-
-        return NextResponse.json({ analysis })
+        return NextResponse.json({ analysis: text });
 
     } catch (error) {
-        console.error('OpenAI API error:', error)
+        console.error('Groq API error:', error);
         return NextResponse.json(
             { error: 'Failed to analyze interview notes' },
             { status: 500 }
-        )
+        );
     }
 }

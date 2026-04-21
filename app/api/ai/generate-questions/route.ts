@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server'
-import OpenAI from 'openai'
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-})
+import { NextResponse } from 'next/server';
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
 
 export async function POST(request: Request) {
     try {
-        const { jobTitle, jobDescription } = await request.json()
+        const { jobTitle, jobDescription } = await request.json();
 
         if (!jobTitle) {
-            return NextResponse.json({ error: 'Job title is required' }, { status: 400 })
+            return NextResponse.json({ error: 'Job title is required' }, { status: 400 });
         }
 
         const prompt = `
@@ -33,34 +33,23 @@ Requirements:
 - Make questions challenging but fair
 - Tailor all questions specifically to the job title and description
 
-Respond with ONLY the JSON, no other text.
-`
+Respond with ONLY the JSON, no other text.`;
 
-        const response = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are an experienced recruitment consultant and interview coach. You always respond in valid JSON format only.'
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
+        const { text } = await generateText({
+            model: groq('llama-3.3-70b-versatile'),
+            prompt: prompt,
             temperature: 0.7,
-        })
+        });
 
-        const content = response.choices[0].message.content
-        const questions = JSON.parse(content || '{}')
+        const questions = JSON.parse(text);
 
-        return NextResponse.json({ questions })
+        return NextResponse.json({ questions });
 
     } catch (error) {
-        console.error('OpenAI API error:', error)
+        console.error('Groq API error:', error);
         return NextResponse.json(
             { error: 'Failed to generate interview questions' },
             { status: 500 }
-        )
+        );
     }
 }
