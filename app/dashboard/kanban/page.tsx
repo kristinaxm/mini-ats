@@ -276,7 +276,7 @@ export default function KanbanPage() {
                         <div className="flex items-center gap-4">
                             <NotificationBell />
                             <span className="hidden md:block text-sm text-gray-500">
-                                {user?.email} ({isAdmin ? 'Admin' : 'Customer'})
+                                {profile?.full_name || profile?.name || user?.email?.split('@')[0] || 'User'} ({isAdmin ? 'Admin' : 'Customer'})
                             </span>
                             <button
                                 onClick={handleLogout}

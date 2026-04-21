@@ -417,7 +417,7 @@ export default function AdminPage() {
                         <div className="flex items-center gap-4">
                             <NotificationBell />
                             <span className="hidden md:block text-sm text-gray-500">
-                                {user?.email} (Admin)
+                             {profile?.full_name || user?.email?.split('@')[0] || 'User'} (Admin)
                             </span>
                             <button
                                 onClick={handleLogout}

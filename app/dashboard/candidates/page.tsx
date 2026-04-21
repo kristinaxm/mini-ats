@@ -413,7 +413,7 @@ export default function CandidatesPage() {
                     </div>
                     <div className="flex items-center gap-4">
                         <NotificationBell />
-                        <span className="hidden text-sm text-gray-500 md:block">{user?.email} ({isAdmin ? 'Admin' : 'Customer'})</span>
+                        <span className="hidden text-sm text-gray-500 md:block">{profile?.full_name || user?.email?.split('@')[0] || 'User'} ({isAdmin ? 'Admin' : 'Customer'})</span>
                         <button onClick={handleLogout} className="rounded-lg bg-gradient-to-r from-gray-700 to-gray-800 px-4 py-2 text-sm text-white shadow-md hover:from-gray-600 hover:to-gray-700">Logout</button>
                     </div>
                 </div>
