@@ -10,6 +10,7 @@ type Interview = {
     id: string
     candidate_id: string
     candidate_name: string
+    candidate_title?: string
     candidate_status: string
     job_title: string
     interview_date: string
@@ -21,6 +22,10 @@ type Interview = {
     weaknesses?: string
     recommendation?: string
     ai_analysis?: string
+    cv_text?: string
+    status: string
+    created_at?: string
+    updated_at?: string
 }
 
 type Candidate = {
