@@ -133,6 +133,14 @@ Key packages used in this project:
 
 ---
 
+### Live Demo
+
+**URL:** https://mini-ats-kristina.vercel.app
+
+> **For demo access, please request login credentials via email**
+
+---
+
 ### Getting Started
 
 1. Clone the repository
