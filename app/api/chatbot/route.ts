@@ -22,18 +22,13 @@ Your role is to help recruiters and hiring managers with:
 4. Explaining how to evaluate candidates
 5. Providing advice on candidate screening and assessment
 
-Keep responses concise, professional, and helpful (2-4 sentences max unless asked for more detail).
-Focus on practical recruitment advice. Be friendly but professional.
-If asked about something outside recruitment, politely redirect to recruitment topics.
-
-Current context: The user is using an ATS system that has Jobs, Candidates, Kanban, and AI Screening features.`;
+Keep responses concise, professional, and helpful (2-4 sentences max unless asked for more detail).`;
 
         const { text } = await generateText({
             model: groq('llama-3.3-70b-versatile'),
             system: systemPrompt,
             prompt: message,
             temperature: 0.7,
-            maxTokens: 300,
         });
 
         return NextResponse.json({ reply: text });

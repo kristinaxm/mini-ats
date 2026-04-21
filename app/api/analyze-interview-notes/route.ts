@@ -31,7 +31,6 @@ Keep it professional, concise, and actionable.`;
             model: groq('llama-3.3-70b-versatile'),
             prompt: prompt,
             temperature: 0.5,
-            maxTokens: 200,
         });
 
         return NextResponse.json({ analysis: text });
