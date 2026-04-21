@@ -56,6 +56,7 @@ export default function CandidatesPage() {
     const [jobs, setJobs] = useState<JobRecord[]>([])
     const [candidates, setCandidates] = useState<CandidateRecord[]>([])
     const [selectedCustomerId, setSelectedCustomerId] = useState(ALL_CUSTOMERS)
+    const [searchQuery, setSearchQuery] = useState('')
 
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
@@ -95,6 +96,16 @@ export default function CandidatesPage() {
         if (!isAdmin) return user.id
         return selectedCustomerId === ALL_CUSTOMERS ? null : selectedCustomerId
     }, [isAdmin, selectedCustomerId, user])
+
+    const filteredCandidates = useMemo(() => {
+        if (!searchQuery.trim()) return candidates
+        const query = searchQuery.toLowerCase()
+        return candidates.filter(candidate =>
+            candidate.name.toLowerCase().includes(query) ||
+            (candidate.email && candidate.email.toLowerCase().includes(query)) ||
+            (candidate.title && candidate.title.toLowerCase().includes(query))
+        )
+    }, [candidates, searchQuery])
 
     useEffect(() => {
         if (candidates.length > 0) {
@@ -622,12 +633,26 @@ export default function CandidatesPage() {
                         </section>
 
                         <section className="rounded-2xl border border-gray-300 bg-white/70 backdrop-blur-xl p-6 shadow-xl">
-                            <div className="mb-4 flex items-center justify-between">
-                                <h2 className="text-xl font-semibold text-gray-800">Candidates</h2>
-                                <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-700">{candidates.length} candidates</span>
+                            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <div className="flex items-center gap-3">
+                                    <h2 className="text-xl font-semibold text-gray-800">Candidates</h2>
+                                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-700">{filteredCandidates.length} candidates</span>
+                                </div>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search by name, email, or title..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full sm:w-64 rounded-lg border border-gray-300 bg-white/80 px-3 py-2 pl-9 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent backdrop-blur-sm"
+                                    />
+                                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
                             </div>
                             <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-                                {candidates.map((candidate) => {
+                                {filteredCandidates.map((candidate) => {
                                     if (editingCandidate?.id === candidate.id) {
                                         return (
                                             <div key={candidate.id} className="rounded-2xl border border-gray-300 bg-white/90 p-4 shadow-sm">
@@ -691,7 +716,6 @@ export default function CandidatesPage() {
                                                         >
                                                             <option value="new">New</option>
                                                             <option value="reviewed">Reviewed</option>
-                                                            {/* INTERVIEW REMOVED - can only be set via calendar */}
                                                             <option value="hired">Hired</option>
                                                             <option value="rejected">Rejected</option>
                                                         </select>
@@ -786,7 +810,11 @@ export default function CandidatesPage() {
                                         </article>
                                     )
                                 })}
-                                {candidates.length === 0 && <div className="text-center text-gray-500 py-8">No candidates added yet</div>}
+                                {filteredCandidates.length === 0 && (
+                                    <div className="text-center text-gray-500 py-8">
+                                        {searchQuery ? 'No candidates match your search' : 'No candidates added yet'}
+                                    </div>
+                                )}
                             </div>
                         </section>
                     </div>

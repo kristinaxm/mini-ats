@@ -356,6 +356,7 @@ export default function AdminPage() {
         { name: 'Jobs', href: '/dashboard/jobs' },
         { name: 'Candidates', href: '/dashboard/candidates' },
         { name: 'Kanban', href: '/dashboard/kanban' },
+        { name: 'Calendar', href: '/dashboard/calendar' },
         { name: 'AI Screening', href: '/dashboard/ai' },
         { name: 'Interview Notes', href: '/dashboard/notes' },
         { name: 'Admin', href: '/dashboard/admin' },

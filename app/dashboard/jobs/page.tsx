@@ -58,6 +58,7 @@ export default function JobsPage() {
     const [customers, setCustomers] = useState<AppProfile[]>([])
     const [jobs, setJobs] = useState<JobRecord[]>([])
     const [selectedCustomerId, setSelectedCustomerId] = useState(ALL_CUSTOMERS)
+    const [searchQuery, setSearchQuery] = useState('')
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [loading, setLoading] = useState(true)
@@ -83,6 +84,14 @@ export default function JobsPage() {
         }
         return selectedCustomerId === ALL_CUSTOMERS ? null : selectedCustomerId
     }, [isAdmin, selectedCustomerId, user])
+
+    const filteredJobs = useMemo(() => {
+        if (!searchQuery.trim()) return jobs
+        const query = searchQuery.toLowerCase()
+        return jobs.filter(job =>
+            job.title.toLowerCase().includes(query)
+        )
+    }, [jobs, searchQuery])
 
     useEffect(() => {
         if (jobs.length > 0) {
@@ -463,7 +472,7 @@ export default function JobsPage() {
                         </section>
 
                         <section className="rounded-2xl border border-gray-300 bg-white/70 backdrop-blur-xl p-6 shadow-xl">
-                            <div className="mb-4 flex items-center justify-between">
+                            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                                 <div>
                                     <h2 className="text-xl font-semibold text-gray-800">Job list</h2>
                                     <p className="mt-1 text-sm text-gray-500">
@@ -472,11 +481,25 @@ export default function JobsPage() {
                                             : 'Showing jobs connected to the active customer.'}
                                     </p>
                                 </div>
-                                <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-700">{jobs.length} jobs</span>
+                                <div className="flex items-center gap-3">
+                                    <span className="rounded-full bg-gray-200 px-3 py-1 text-sm font-medium text-gray-700">{filteredJobs.length} jobs</span>
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            placeholder="Search by job title..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full sm:w-64 rounded-lg border border-gray-300 bg-white/80 px-3 py-2 pl-9 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent backdrop-blur-sm"
+                                        />
+                                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                                {jobs.map((job) => {
+                                {filteredJobs.map((job) => {
                                     const customerLabel = customers.find((customer) => customer.id === job.customer_id)?.company_name ||
                                         customers.find((customer) => customer.id === job.customer_id)?.full_name ||
                                         customers.find((customer) => customer.id === job.customer_id)?.email ||
@@ -580,9 +603,9 @@ export default function JobsPage() {
                                         </article>
                                     )
                                 })}
-                                {jobs.length === 0 && (
+                                {filteredJobs.length === 0 && (
                                     <div className="rounded-2xl border border-dashed border-gray-300 bg-white/50 px-6 py-12 text-center text-gray-500">
-                                        No jobs found for this view yet.
+                                        {searchQuery ? 'No jobs match your search' : 'No jobs found for this view yet.'}
                                     </div>
                                 )}
                             </div>
