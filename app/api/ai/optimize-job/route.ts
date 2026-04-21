@@ -2,8 +2,11 @@ export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { groq } from '@ai-sdk/groq';
-import { generateText } from 'ai';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(request: Request) {
     try {
@@ -28,16 +31,16 @@ Please optimize this job description by:
 
 Return ONLY the optimized job description as plain text, no JSON formatting.`;
 
-        const { text } = await generateText({
-            model: groq('llama-3.3-70b-versatile'),
-            prompt: prompt,
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
             temperature: 0.7,
         });
 
-        return NextResponse.json({ optimizedDescription: text });
+        return NextResponse.json({ optimizedDescription: completion.choices[0].message.content });
 
     } catch (error) {
-        console.error('Groq API error:', error);
+        console.error('OpenAI API error:', error);
         return NextResponse.json(
             { error: 'Failed to optimize job description' },
             { status: 500 }

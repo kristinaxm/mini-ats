@@ -2,8 +2,11 @@ export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { groq } from '@ai-sdk/groq';
-import { generateText } from 'ai';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(request: Request) {
     try {
@@ -38,13 +41,16 @@ Respond in EXACTLY this JSON format:
 
 Respond with ONLY the JSON, no other text.`;
 
-        const { text } = await generateText({
-            model: groq('llama-3.3-70b-versatile'),
-            prompt: prompt,
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+                { role: "user", content: prompt }
+            ],
             temperature: 0.4,
+            response_format: { type: "json_object" }
         });
 
-        const analysis = JSON.parse(text);
+        const analysis = JSON.parse(completion.choices[0].message.content || '{}');
         const validatedAnalysis = {
             missingSkills: analysis.missingSkills || [],
             weakAreas: analysis.weakAreas || [],
@@ -56,8 +62,7 @@ Respond with ONLY the JSON, no other text.`;
         return NextResponse.json({ analysis: validatedAnalysis });
 
     } catch (error) {
-        console.error('Gap analysis API error:', error);
-
+        console.error('OpenAI API error:', error);
         return NextResponse.json({
             analysis: {
                 missingSkills: ['Unable to analyze - API error'],
