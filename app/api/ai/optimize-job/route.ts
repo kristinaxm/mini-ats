@@ -1,19 +1,16 @@
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server'
-import OpenAI from 'openai'
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-})
+import { NextResponse } from 'next/server';
+import { groq } from '@ai-sdk/groq';
+import { generateText } from 'ai';
 
 export async function POST(request: Request) {
     try {
-        const { jobTitle, jobDescription } = await request.json()
+        const { jobTitle, jobDescription } = await request.json();
 
         if (!jobTitle) {
-            return NextResponse.json({ error: 'Job title is required' }, { status: 400 })
+            return NextResponse.json({ error: 'Job title is required' }, { status: 400 });
         }
 
         const prompt = `
@@ -33,34 +30,22 @@ Please optimize this job description by:
 8. Adding a "What we offer" section
 
 Return ONLY the optimized job description as plain text, no JSON formatting, no extra comments.
-The description should be professional, warm, and inviting while remaining factual.
-`
+The description should be professional, warm, and inviting while remaining factual.`;
 
-        const response = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: [
-                {
-                    role: 'system',
-                    content: 'You are an expert recruitment consultant and copywriter who specializes in creating inclusive, engaging job descriptions that attract diverse talent.'
-                },
-                {
-                    role: 'user',
-                    content: prompt
-                }
-            ],
+        const { text } = await generateText({
+            model: groq('llama-3.3-70b-versatile'),
+            prompt: prompt,
             temperature: 0.7,
-            max_tokens: 1500,
-        })
+            maxTokens: 1500,
+        });
 
-        const optimizedDescription = response.choices[0].message.content
-
-        return NextResponse.json({ optimizedDescription })
+        return NextResponse.json({ optimizedDescription: text });
 
     } catch (error) {
-        console.error('OpenAI API error:', error)
+        console.error('Groq API error:', error);
         return NextResponse.json(
             { error: 'Failed to optimize job description' },
             { status: 500 }
-        )
+        );
     }
 }
