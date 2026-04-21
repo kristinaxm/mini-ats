@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/NotificationBell'
 
@@ -190,7 +190,7 @@ export default function JobsPage() {
         router.push('/login')
     }
 
-    const handleCreateJob = async (event: FormEvent<HTMLFormElement>) => {
+    const handleCreateJob = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault()
         if (!user) return
 
@@ -534,9 +534,9 @@ export default function JobsPage() {
                                                         {job.description ? job.description.substring(0, 150) + (job.description.length > 150 ? '...' : '') : 'No description provided.'}
                                                     </p>
                                                     <p className="mt-1 text-xs text-gray-400">
-                                                        Created: {new Date(job.created_at).toLocaleDateString()}
+                                                        Created: {job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}
                                                         {job.updated_at && job.updated_at !== job.created_at && (
-                                                            <> · Updated: {new Date(job.updated_at).toLocaleDateString()}</>
+                                                            <> · Updated: {job.updated_at ? new Date(job.updated_at).toLocaleDateString() : 'N/A'}</>
                                                         )}
                                                     </p>
                                                     {job.candidates && job.candidates.length > 0 && (
@@ -609,9 +609,9 @@ export default function JobsPage() {
                             <div>
                                 <h2 className="text-2xl font-bold text-gray-800">{selectedJob.title}</h2>
                                 <p className="text-sm text-gray-500 mt-1">
-                                    Created: {new Date(selectedJob.created_at).toLocaleDateString()}
+                                    Created: {selectedJob.created_at ? new Date(selectedJob.created_at).toLocaleDateString() : 'N/A'}
                                     {selectedJob.updated_at && selectedJob.updated_at !== selectedJob.created_at && (
-                                        <> · Updated: {new Date(selectedJob.updated_at).toLocaleDateString()}</>
+                                        <> · Updated: {selectedJob.updated_at ? new Date(selectedJob.updated_at).toLocaleDateString() : 'N/A'}</>
                                     )}
                                 </p>
                             </div>

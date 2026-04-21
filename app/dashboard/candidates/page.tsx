@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import NotificationBell from '@/components/NotificationBell'
 
@@ -235,7 +235,7 @@ export default function CandidatesPage() {
         }
     }
 
-    const handleCreateCandidate = async (e: FormEvent) => {
+    const handleCreateCandidate = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         if (!user || !selectedJobId || !name) return
 
