@@ -1,3 +1,6 @@
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import PDFParser from 'pdf2json'
