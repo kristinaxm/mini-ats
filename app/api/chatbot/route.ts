@@ -2,8 +2,11 @@ export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { groq } from '@ai-sdk/groq';
-import { generateText } from 'ai';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(request: Request) {
     try {
@@ -24,14 +27,17 @@ Your role is to help recruiters and hiring managers with:
 
 Keep responses concise, professional, and helpful (2-4 sentences max unless asked for more detail).`;
 
-        const { text } = await generateText({
-            model: groq('llama-3.3-70b-versatile'),
-            system: systemPrompt,
-            prompt: message,
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: message }
+            ],
             temperature: 0.7,
+            max_tokens: 300,
         });
 
-        return NextResponse.json({ reply: text });
+        return NextResponse.json({ reply: completion.choices[0].message.content });
 
     } catch (error) {
         console.error('Chatbot error:', error);

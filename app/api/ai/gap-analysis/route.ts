@@ -43,9 +43,7 @@ Respond with ONLY the JSON, no other text.`;
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
-            messages: [
-                { role: "user", content: prompt }
-            ],
+            messages: [{ role: "user", content: prompt }],
             temperature: 0.4,
             response_format: { type: "json_object" }
         });

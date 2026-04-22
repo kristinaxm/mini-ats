@@ -2,8 +2,11 @@ export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { groq } from '@ai-sdk/groq';
-import { generateText } from 'ai';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(request: Request) {
     try {
@@ -27,16 +30,17 @@ Based on these interview notes, provide a brief analysis (2-3 sentences) that:
 
 Keep it professional, concise, and actionable.`;
 
-        const { text } = await generateText({
-            model: groq('llama-3.3-70b-versatile'),
-            prompt: prompt,
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
             temperature: 0.5,
+            max_tokens: 200,
         });
 
-        return NextResponse.json({ analysis: text });
+        return NextResponse.json({ analysis: completion.choices[0].message.content });
 
     } catch (error) {
-        console.error('Groq API error:', error);
+        console.error('OpenAI API error:', error);
         return NextResponse.json(
             { error: 'Failed to analyze interview notes' },
             { status: 500 }

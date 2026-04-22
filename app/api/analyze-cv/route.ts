@@ -10,6 +10,10 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     return new Promise((resolve, reject) => {
         const pdfParser = new PDFParser();
@@ -83,57 +87,26 @@ ${textToAnalyze.substring(0, 8000)}
 Analyze the CV and provide a response in EXACTLY this JSON format:
 {
     "matchScore": 75,
-    "strengths": ["strength 1", "strength 2", "strength 3", "strength 4", "strength 5"],
-    "gaps": ["gap 1", "gap 2", "gap 3"],
-    "questions": ["follow-up question 1", "follow-up question 2", "follow-up question 3"]
-}
-
-Guidelines:
-- matchScore: A number between 0-100 indicating how well the candidate matches the job
-- strengths: Key strengths and relevant experience from the CV (5-7 items)
-- gaps: Missing skills or experience gaps (3-5 items)
-- questions: 3-5 questions to ask the candidate in an interview to learn more
-
-Be objective, fair, and specific. Focus only on job-relevant information.
-Respond with ONLY the JSON, no other text.`;
+    "strengths": ["strength 1", "strength 2", "strength 3"],
+    "gaps": ["gap 1", "gap 2"],
+    "questions": ["question 1", "question 2", "question 3"]
+}`;
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
-            messages: [
-                {
-                    role: "system",
-                    content: "You are an expert CV analyzer for recruitment. Always respond with valid JSON only."
-                },
-                {
-                    role: "user",
-                    content: prompt
-                }
-            ],
+            messages: [{ role: "user", content: prompt }],
             temperature: 0.3,
             response_format: { type: "json_object" }
         });
 
         const analysis = JSON.parse(completion.choices[0].message.content || '{}');
-
-        const validatedAnalysis = {
-            matchScore: typeof analysis.matchScore === 'number' ? analysis.matchScore : 0,
-            strengths: Array.isArray(analysis.strengths) ? analysis.strengths.slice(0, 7) : [],
-            gaps: Array.isArray(analysis.gaps) ? analysis.gaps.slice(0, 5) : [],
-            questions: Array.isArray(analysis.questions) ? analysis.questions.slice(0, 5) : []
-        };
-
-        return NextResponse.json({ analysis: validatedAnalysis });
+        return NextResponse.json({ analysis });
 
     } catch (error) {
         console.error('OpenAI API error:', error);
-
-        return NextResponse.json({
-            analysis: {
-                matchScore: 0,
-                strengths: ['Could not analyze CV at this time'],
-                gaps: ['Please try again later'],
-                questions: ['Contact support if issue persists']
-            }
-        });
+        return NextResponse.json(
+            { error: 'Failed to analyze CV' },
+            { status: 500 }
+        );
     }
 }
