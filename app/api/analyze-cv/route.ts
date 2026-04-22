@@ -4,6 +4,11 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import PDFParser from 'pdf2json';
+import mammoth from 'mammoth';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -31,7 +36,6 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 }
 
 async function extractTextFromDOCX(buffer: Buffer): Promise<string> {
-    const mammoth = await import('mammoth');
     const result = await mammoth.extractRawText({ buffer });
     return result.value;
 }
@@ -58,28 +62,29 @@ export async function POST(request: Request) {
                 textToAnalyze = buffer.toString('utf-8');
             } else {
                 return NextResponse.json(
-                    { error: 'Unsupported file type' },
+                    { error: 'Unsupported file type. Please upload PDF, DOCX, or TXT files.' },
                     { status: 400 }
                 );
             }
         }
 
-        if (!textToAnalyze) {
+        if (!textToAnalyze || textToAnalyze.trim().length === 0) {
             return NextResponse.json(
-                { error: 'CV text or file is required' },
+                { error: 'CV text or file is required and could not be extracted' },
                 { status: 400 }
             );
         }
 
         const prompt = `
-Analyze this CV against the job description.
+You are an expert recruitment consultant and CV analyzer. Analyze this CV against the job description.
 
 Job Title: ${jobTitle || 'Not specified'}
 Job Description: ${jobDescription || 'Not specified'}
 
-CV: ${textToAnalyze.substring(0, 8000)}
+CV Text:
+${textToAnalyze.substring(0, 8000)}
 
-Respond with JSON only:
+Analyze the CV and provide a response in EXACTLY this JSON format:
 {
     "matchScore": 75,
     "strengths": ["strength 1", "strength 2", "strength 3"],

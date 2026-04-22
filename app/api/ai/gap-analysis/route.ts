@@ -60,8 +60,7 @@ Respond with ONLY the JSON, no other text.`;
         return NextResponse.json({ analysis: validatedAnalysis });
 
     } catch (error) {
-        console.error('Gap analysis API error:', error);
-
+        console.error('OpenAI API error:', error);
         return NextResponse.json({
             analysis: {
                 missingSkills: ['Unable to analyze - API error'],
