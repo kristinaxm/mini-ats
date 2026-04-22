@@ -2,9 +2,12 @@ export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { groq } from '@ai-sdk/groq';
-import { generateText } from 'ai';
+import OpenAI from 'openai';
 import PDFParser from 'pdf2json';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -84,17 +87,18 @@ Respond with JSON only:
     "questions": ["question 1", "question 2", "question 3"]
 }`;
 
-        const { text } = await generateText({
-            model: groq('llama-3.3-70b-versatile'),
-            prompt: prompt,
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
             temperature: 0.3,
+            response_format: { type: "json_object" }
         });
 
-        const analysis = JSON.parse(text);
+        const analysis = JSON.parse(completion.choices[0].message.content || '{}');
         return NextResponse.json({ analysis });
 
     } catch (error) {
-        console.error('Groq API error:', error);
+        console.error('OpenAI API error:', error);
         return NextResponse.json(
             { error: 'Failed to analyze CV' },
             { status: 500 }

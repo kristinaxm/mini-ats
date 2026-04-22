@@ -2,8 +2,11 @@ export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { groq } from '@ai-sdk/groq';
-import { generateText } from 'ai';
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
 
 export async function POST(request: Request) {
     try {
@@ -35,18 +38,18 @@ Requirements:
 
 Respond with ONLY the JSON, no other text.`;
 
-        const { text } = await generateText({
-            model: groq('llama-3.3-70b-versatile'),
-            prompt: prompt,
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
             temperature: 0.7,
+            response_format: { type: "json_object" }
         });
 
-        const questions = JSON.parse(text);
-
+        const questions = JSON.parse(completion.choices[0].message.content || '{}');
         return NextResponse.json({ questions });
 
     } catch (error) {
-        console.error('Groq API error:', error);
+        console.error('OpenAI API error:', error);
         return NextResponse.json(
             { error: 'Failed to generate interview questions' },
             { status: 500 }
