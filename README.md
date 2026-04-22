@@ -7,7 +7,7 @@ An Applicant Tracking System built with Next.js, Supabase, and OpenAI. This plat
 ### Tech Stack
 - **Framework:** Next.js 16 (App Router)
 - **Database & Auth:** Supabase (PostgreSQL)
-- **AI:** OpenAI API (GPT-3.5-turbo)
+- **AI:** OpenAI API (GPT-4o-mini)
 - **Styling:** Tailwind CSS
 - **Language:** TypeScript
 - **File Processing:** pdf2json, mammoth
